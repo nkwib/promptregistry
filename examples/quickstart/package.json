@@ -1,0 +1,19 @@
+{
+  "name": "promptregistry-quickstart-example",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "promptregistry codegen --manifest ./manifest.json --out ./prompts/.generated",
+    "check": "promptregistry check --manifest ./manifest.json --out ./prompts/.generated",
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "promptregistry": "file:../.."
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.9.3"
+  }
+}

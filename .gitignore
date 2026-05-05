@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.DS_Store
+
+# Codegen output — regenerated on demand. (prompt-lock.json IS committed per ADR-0005.)
+examples/quickstart/prompts/.generated/*.ts

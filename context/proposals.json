@@ -1,0 +1,47 @@
+{
+  "proposals": [
+    {
+      "id": "p1",
+      "title": "promptkit",
+      "one_liner": "A 2KB tagged-template prompt library where TypeScript template literal types catch missing variables, typos, and wrong types at compile time — shipped with a TS Playground link as its homepage and a side-by-side Vercel AI SDK before/after demo.",
+      "problem": "TS engineers writing LLM prompts today either get untyped string interpolation (Vercel AI SDK, raw strings) or have to adopt a full DSL like BAML with code generation and runtime. There's no minimal primitive that uses TS's own template literal types to make prompt variables a first-class type. A typo in `{{usrName}}` or passing a number where a string belongs ships silently to production.",
+      "who_for": "Senior TS engineers building agentic apps who already use Zod and want prompts to feel as type-safe as their API contracts — without adopting a DSL or codegen step.",
+      "mvp_scope": "OSS npm package: a single `prompt` tagged-template function that parses `{{var}}` placeholders into a TS template literal type, infers a variables object type, and a `.with({...})` method that requires exact keys with correct types. Adds `prompt.partial({...})` for partial application across multi-turn calls (with an explicit 'partials do not compose' rule in the docs to prevent combinator creep) and a `.validate()` method that runs Zod coercion at the call site — `throw`-on-invalid is the default path, opt-in `.validateSafe()` returns a Result type for compile-time + runtime parity. Hard scope line: variables only, no template logic (no `{{#if}}`, no loops) — that's a public non-goal in the README first paragraph, not a footnote. Pluggable delimiter from day one to avoid Handlebars/Mustache collisions. Documents the runtime-string regression path prominently (dynamic templates from DB/i18n fall back to `string`). Adds a `npx promptkit init` scaffold that writes a `prompts/` directory with one typed example and prints the TS Playground URL — zero-to-first-error path under 60 seconds. Ships a `promptkit/compat` CJS re-export documented as an explicit interop path for mixed pipelines (Next.js older configs, Jest without transform). Primary launch surface is a shareable TS Playground link wired into the npm `homepage` field AND the GitHub repo `description` (not just the README) so `npm info promptkit` and search results both surface the demo at point of discovery. Side-by-side before/after vs Vercel AI SDK `generateText` uses a real multi-variable system prompt (user name, plan tier, locale) with a deliberate typo (`{{usrName}}` vs `{{userName}}`) that shows the runtime output that would have shipped, then shows tsc catching it. Stretch launch move: open a PR or issue on the Vercel AI SDK repo proposing a `promptkit` example in the `generateText` docs section — official Vercel docs placement matters more than a standalone launch post. Repo + minimal docs site (Svelte + MDsveX). ESM-only primary, CJS interop via `promptkit/compat`, zero dependencies, Zod peer optional with a prominent 'add Zod for runtime validation' setup paragraph.",
+      "stack": ["TS"],
+      "oss_or_paid": "OSS",
+      "weeks_to_mvp": 3,
+      "legal_flags": ["none"],
+      "status": "active",
+      "kill_reason": null
+    },
+    {
+      "id": "p2",
+      "title": "PromptDiff",
+      "one_liner": "An OSS CLI + published GitHub Marketplace action that scans typed prompts in your repo and prints a structural variable + message-role diff between two git refs, with a `promptdiff assert` subcommand that fails CI on removed required variables.",
+      "problem": "When devs edit a prompt string, nobody knows what changed semantically — diffs show line edits but not which variables, instructions, or constraints shifted. Promptfoo runs evals but doesn't tie them to git history or PR-time gating. Teams ship prompt regressions and only notice in production logs. The TS DX gap: prompts aren't versioned the way schemas are.",
+      "who_for": "Solo founders and small AI-product teams (1-5 engineers) shipping LLM features on Vercel/AWS who already write prompts in TS files and want PR-time safety nets without adopting a heavy platform.",
+      "mvp_scope": "OSS-only v1 (Rauch dissents — preserved below). A CLI that depends on the p1 tagged-template `prompt` primitive, walks prompt declarations in a repo, and computes a structural diff between two git SHAs, scoped tightly to: variables added/removed and message role changes. 'Instruction-block edits' is explicitly cut from v1 — Matt, Addy, and Theo all converged on this; ship variable + role diffing fast, earn richer structural diffing later with usage data. Output is both a typed data structure exported from a shared types package as `PromptDiff<OldVars, NewVars>` (so the diff is itself type-checkable and assertable in user test suites) and a human-readable stdout summary. Adds a `promptdiff assert` subcommand: `promptdiff assert --no-removed-vars HEAD~1 HEAD` returns non-zero exit code on contract-breaking diffs — that's the one-line CI gate, not just a report. Ships as a published GitHub Marketplace action (`promptdiff-action`, even unverified initially) — Marketplace search-discovery beats paste-snippet docs. Loud, specific error (not silent empty diff) when the CLI encounters raw-string prompts that aren't using p1's tagged-template; raw-string adoption ceiling is documented on README line one, not page three. If 'instruction-block' diffing is added later, it requires a zero-runtime convention spec first (e.g., `// @block: constraints` comment pragmas) — no heuristic string diffing. Explicitly defers: semantic NLP diffs, hosted GitHub App, Stripe billing, Supabase storage, eval running. Eval-on-PR is left to promptfoo. Hosted GitHub App and paid tier are an explicit round-2 consideration once OSS CLI has adoption signal from real teams.",
+      "stack": ["TS"],
+      "oss_or_paid": "OSS",
+      "weeks_to_mvp": 3,
+      "legal_flags": ["none"],
+      "status": "active",
+      "kill_reason": null
+    },
+    {
+      "id": "p3",
+      "title": "PromptRegistry",
+      "one_liner": "An OSS SDK + CLI that turns a static prompt manifest (a JSON file in a GitHub repo or public bucket) into a typed `pull('prompt-name@v3')` callable, with a lockfile (`prompt-lock.json`) pinning content hashes so remote prompt edits surface as human-readable build errors at the call site.",
+      "problem": "Teams want to edit prompts without redeploying code, but existing prompt-management tools (Langfuse, PromptLayer) treat prompts as opaque strings — when a non-engineer edits a prompt and removes a `{{customer_name}}` variable, the TS app keeps passing it and silently breaks. There's no system where the deployed prompt's variable shape is reflected back into the calling code's types, and no integrity gate that detects a manifest edited without a version bump.",
+      "who_for": "Small AI product teams where a PM or domain expert iterates on prompts while engineers own the calling code — TS shops that want to delegate prompt edits without giving up type safety.",
+      "mvp_scope": "OSS-only v1, no hosted UI. SDK built on the p1 tagged-template `prompt` API plus a `pull('prompt-name@v3')` function that fetches a prompt from a static manifest URL (GitHub raw, GitHub release asset, or public Cloudflare R2 / S3) and returns a typed callable, with a CLI codegen step that writes `.d.ts` for each pulled prompt and emits a typed `registry.ts` barrel re-exporting each prompt as a named export (`export { customerSummary } from './prompts/customer-summary'`) — named imports are greppable and refactor-safe. Strong convergence pivot from Matt + Theo + Rauch: ship `promptregistry lock`, a lockfile (`prompt-lock.json`, analogous to `package-lock.json`) that pins manifest URL + content hash + version tag together. The generated `.d.ts` carries the manifest hash in its header. `promptregistry check` cross-checks the local manifest against all `pull()` call-sites in the repo AND verifies the lockfile hash matches the current remote — fails loudly if codegen is stale. The CLI intercepts `tsc --noEmit` diagnostics and rewrites them as human messages: 'Remote prompt `customer-onboarding@v3` removed variable `customer_name` — update your call site on line 42 or pin to `@v2`.' That error message, screenshotted in the README and PR-comment example, is the launch pitch — not the API. Adds `promptregistry init` that scaffolds the static manifest from existing `prompt()` call-sites in the repo via static analysis — zero manual JSON authoring as the entry point. Defers: web editor UI, Stripe billing, Supabase backend, AWS Lambda API, A/B testing, role-based access, audit logs, migration importers from Langfuse/PromptLayer. Hosted registry + paid tier explicitly punted, contingent on OSS CLI adoption proving teams actually wire codegen + lockfile gates into CI. Open data question (per Addy): whether PMs actually edit raw JSON manifests or whether they need a UI — UI as a hosted paid layer remains the natural follow-on if data shows manifest-editing is engineer-only in practice.",
+      "stack": ["TS"],
+      "oss_or_paid": "OSS",
+      "weeks_to_mvp": 5,
+      "legal_flags": ["none"],
+      "status": "active",
+      "kill_reason": null
+    }
+  ],
+  "round": 2
+}
