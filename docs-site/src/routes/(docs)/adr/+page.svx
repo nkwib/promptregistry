@@ -1,0 +1,37 @@
+---
+title: 'promptregistry · Architecture decisions'
+---
+
+<svelte:head>
+  <title>promptregistry · Architecture decisions</title>
+  <meta
+    name="description"
+    content="The three architecture decision records that fix the shape of promptregistry: barrel-only public API, prompt-lock.json semantics, and the placement of the check command."
+  />
+</svelte:head>
+
+# Architecture decisions
+
+Three records pin the public shape of promptregistry. They are referenced from the README and inline source comments, and they are the document a contributor reads before changing anything load-bearing.
+
+## ADR-0004 · Barrel-only public API — no exported `pull()`
+
+[Read the full ADR →](/adr/0004-barrel-only-public-api)
+
+The public SDK surface is the generated `registry.ts` barrel. `pull(pin)` is internal-only. String-keyed runtime lookups were rejected because they undermine refactor safety, the type-safety pitch, and the launch story.
+
+## ADR-0005 · `prompt-lock.json` semantics
+
+[Read the full ADR →](/adr/0005-prompt-lock-semantics)
+
+The lockfile is committed (analog to `package-lock.json`). Runtime is permissive — `pull()` does not throw on stale lockfiles. The integrity gate is `promptregistry check`, which evaluates four conditions per Pin: hash drift, stale generated file, missing pin, orphaned entry (warning).
+
+## ADR-0006 · `check` placement — build script + CI
+
+[Read the full ADR →](/adr/0006-check-placement)
+
+`promptregistry check` is integrated into `package.json` build scripts and CI, not as a pre-commit hook. The recommended wiring is `"typecheck": "promptregistry check && tsc --noEmit"`. Pre-commit hooks were rejected because they require a foreign dependency (`husky`, `lefthook`) and break the sub-60-second onboarding promise.
+
+## Why three (not five, not nine)
+
+The promptkit project converged on three ADRs as the right granularity: only decisions whose reversal would cause a versioned breaking change deserve their own record. Smaller patterns live in source comments. Larger directional bets live in the round-table notes under `/context`. promptregistry inherits that bar.
