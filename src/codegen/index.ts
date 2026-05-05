@@ -79,7 +79,6 @@ function generateRuntime(entry: PromptEntry, options: CodegenOptions): string {
 // Manifest: ${options.manifestUrl}
 // Pin: ${pin}
 // Hash: ${options.manifestHash}
-// Generated: ${new Date().toISOString()}
 
 import { compile } from 'promptregistry/runtime'
 

@@ -4,7 +4,7 @@
  * prompt-lock.json is committed to git. See ADR-0005.
  */
 
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { z } from 'zod'
 
@@ -49,4 +49,38 @@ export function createLockfile(entries: LockfileEntry[]): Lockfile {
 
 export function findLockfileEntry(lockfile: Lockfile, name: string, version: string): LockfileEntry | undefined {
   return lockfile.entries.find((e) => e.name === name && e.version === version)
+}
+
+/**
+ * Preserve `pulled_at` from an existing lockfile when the (name, version,
+ * content_hash) triple is unchanged. Only stamp a new `pulled_at` for
+ * genuinely new or changed entries. Used by codegen/lock to keep the
+ * lockfile byte-stable across re-runs.
+ */
+export function mergePulledAt(
+  existing: Lockfile | null,
+  fresh: LockfileEntry[],
+): LockfileEntry[] {
+  if (!existing) return fresh
+  return fresh.map((entry) => {
+    const prior = existing.entries.find(
+      (e) =>
+        e.name === entry.name &&
+        e.version === entry.version &&
+        e.content_hash === entry.content_hash,
+    )
+    if (prior) {
+      return { ...entry, pulled_at: prior.pulled_at }
+    }
+    return entry
+  })
+}
+
+/**
+ * Read an existing lockfile if present; return null on missing or malformed
+ * file (callers treat that as "no prior state").
+ */
+export function readLockfileIfExists(path: string): Lockfile | null {
+  if (!existsSync(path)) return null
+  return readLockfile(path)
 }

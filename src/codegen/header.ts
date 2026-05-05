@@ -1,12 +1,11 @@
 /**
- * Parse the header comment from a generated `.d.ts` file.
+ * Parse the header comment from a generated `.ts` file.
  */
 
 export interface DtsHeader {
   manifestUrl: string
   pin: string
   hash: string
-  generatedAt: string
 }
 
 export function parseDtsHeader(content: string): DtsHeader | null {
@@ -24,12 +23,10 @@ export function parseDtsHeader(content: string): DtsHeader | null {
       header.pin = text.slice('Pin:'.length).trim()
     } else if (text.startsWith('Hash:')) {
       header.hash = text.slice('Hash:'.length).trim()
-    } else if (text.startsWith('Generated:')) {
-      header.generatedAt = text.slice('Generated:'.length).trim()
     }
   }
 
-  if (header.manifestUrl && header.pin && header.hash && header.generatedAt) {
+  if (header.manifestUrl && header.pin && header.hash) {
     return header as DtsHeader
   }
   return null

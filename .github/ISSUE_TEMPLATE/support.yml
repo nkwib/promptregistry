@@ -1,0 +1,28 @@
+name: Support question
+description: Ask a question about how to use promptregistry.
+title: "[question] "
+labels: ["question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before opening a support question, please check:
+        - The [README quick start](../../README.md#quick-start)
+        - The [API reference](../../docs/api.md)
+        - The [open issues](https://github.com/nkwib/promptregistry/issues) — your question may already be answered
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Question
+      description: What are you trying to do, and where are you stuck?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: What you've tried
+      description: Commands run, errors seen, links to relevant code.
+    validations:
+      required: false

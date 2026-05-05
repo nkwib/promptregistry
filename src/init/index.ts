@@ -6,12 +6,16 @@
  */
 
 import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { pathToFileURL } from 'node:url'
 import { validateManifest } from '../manifest/schema.js'
+import { sha256 } from '../manifest/hash.js'
+import { createLockfile, writeLockfile } from '../lockfile/io.js'
 import type { PromptRegistryConfig } from '../cli/config.js'
 
 export interface InitResult {
   manifestPath: string
+  lockfilePath: string
   promptsFound: number
 }
 
@@ -32,7 +36,10 @@ export async function init(config: PromptRegistryConfig): Promise<InitResult> {
   for (const srcRoot of config.srcRoots) {
     if (!existsSync(srcRoot)) continue
 
-    const files = ts.sys.readDirectory(srcRoot, ['.ts'], undefined, ['node_modules', 'dist'])
+    // Args order: (path, extensions?, excludes?, includes?, depth?). The
+    // previous version passed `['node_modules', 'dist']` as *includes*, which
+    // matched nothing — silently returning zero files for every project.
+    const files = ts.sys.readDirectory(srcRoot, ['.ts'], ['**/node_modules/**', '**/dist/**'])
     for (const file of files) {
       const sourceFile = ts.createSourceFile(
         file,
@@ -84,9 +91,28 @@ export async function init(config: PromptRegistryConfig): Promise<InitResult> {
   validateManifest(manifest)
 
   const manifestPath = join(config.outDir, '..', 'manifest.json')
-  writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
+  const manifestBytes = JSON.stringify(manifest, null, 2) + '\n'
+  writeFileSync(manifestPath, manifestBytes)
 
-  return { manifestPath, promptsFound: prompts.length }
+  // Bootstrap a starter prompt-lock.json next to the manifest. Issue 008
+  // acceptance: "Writes manifest.json and a starter prompt-lock.json
+  // referencing it as a local file URL."
+  const manifestHash = sha256(manifestBytes)
+  const manifestUrl = pathToFileURL(manifestPath).href
+  const pulledAt = new Date().toISOString()
+  const lockfile = createLockfile(
+    manifest.prompts.map((p) => ({
+      name: p.name,
+      version: p.version,
+      manifest_url: manifestUrl,
+      content_hash: manifestHash,
+      pulled_at: pulledAt,
+    })),
+  )
+  const lockfilePath = join(dirname(manifestPath), 'prompt-lock.json')
+  writeLockfile(lockfilePath, lockfile)
+
+  return { manifestPath, lockfilePath, promptsFound: prompts.length }
 }
 
 type Ts = typeof import('typescript')

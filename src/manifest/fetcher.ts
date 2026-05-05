@@ -2,9 +2,9 @@
  * Manifest fetcher — supports GitHub raw, release assets, and public buckets.
  */
 
-import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { validateManifest, type Manifest } from './schema.js'
+import { sha256 } from './hash.js'
 
 export interface FetchedManifest {
   /** Raw bytes of the manifest JSON */
@@ -190,6 +190,3 @@ function parseManifestBytes(bytes: Buffer, url: string): FetchedManifest {
   }
 }
 
-function sha256(data: Buffer): string {
-  return createHash('sha256').update(data).digest('hex')
-}
