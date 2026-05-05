@@ -152,7 +152,7 @@ For a Manifest entry named `customer-summary`, `codegen` writes `<outDir>/custom
 // Pin: customer-summary@v1
 // Hash: <sha256>
 
-import { compile } from 'promptregistry/runtime';
+import { compile } from '@nkwib/promptregistry/runtime';
 
 export type CustomerSummaryVars = {
   customerName: string;
@@ -185,7 +185,7 @@ export { default as welcomeMessage } from './welcome-message.js';
 
 End users do not import runtime values from `promptregistry` directly; they import the generated modules from `<outDir>/registry.js`.
 
-### `import type { ... } from 'promptregistry'`
+### `import type { ... } from '@nkwib/promptregistry'`
 
 Type-only exports. Re-exported from promptkit:
 
@@ -194,7 +194,7 @@ Type-only exports. Re-exported from promptkit:
 | `CompiledTemplate<Vars>` | The shape of a _Compiled template_. |
 | `PromptTag<Open, Close>` | The shape of a tagged-template factory parameterised by delimiter. |
 
-### `promptregistry/runtime`
+### `@nkwib/promptregistry/runtime`
 
 Exports a `compile()` helper. It exists so that the generated `.ts` files have a stable runtime to import. **It is an implementation detail of codegen, not a public API.** Do not import from `promptregistry/runtime` in handwritten code; import from the registry barrel instead.
 

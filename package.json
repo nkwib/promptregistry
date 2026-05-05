@@ -1,6 +1,9 @@
 {
-  "name": "promptregistry",
+  "name": "@nkwib/promptregistry",
   "version": "0.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "description": "Turn a static prompt manifest into typed, greppable named imports with lockfile-gated integrity",
   "type": "module",
   "sideEffects": false,

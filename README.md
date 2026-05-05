@@ -22,7 +22,7 @@ The next `tsc --noEmit` on a consumer's repo names the offending prompt and the 
 ## Quick start
 
 ```bash
-npm install promptregistry
+npm install @nkwib/promptregistry
 ```
 
 Create a `manifest.json`:

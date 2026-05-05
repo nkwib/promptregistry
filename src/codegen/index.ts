@@ -80,7 +80,7 @@ function generateRuntime(entry: PromptEntry, options: CodegenOptions): string {
 // Pin: ${pin}
 // Hash: ${options.manifestHash}
 
-import { compile } from 'promptregistry/runtime'
+import { compile } from '@nkwib/promptregistry/runtime'
 
 export type ${typeName} = ${varsType}
 

@@ -45,7 +45,7 @@
         </a>
       </div>
 
-      <pre class="install"><span class="prompt">$</span> npm install promptregistry</pre>
+      <pre class="install"><span class="prompt">$</span> npm install @nkwib/promptregistry</pre>
     </div>
 
     <aside class="demo">
