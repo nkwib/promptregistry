@@ -1,0 +1,49 @@
+name: Bug report
+description: Report a defect in promptregistry's CLI, codegen output, or runtime helper.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. Please include enough detail that we can reproduce locally without a back-and-forth.
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: A minimal sequence of commands or code that triggers the bug. Include the manifest snippet if relevant.
+      placeholder: |
+        1. Create a manifest with ...
+        2. Run `promptregistry codegen --manifest ./manifest.json --out ./prompts/.generated`
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the exact CLI output / tsc error / stack trace.
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Output of `node --version`, `npm --version`, `npx promptregistry --version`, and OS.
+      placeholder: |
+        node: v20.x
+        npm: 10.x
+        promptregistry: 0.1.0
+        OS: macOS 14.5
+    validations:
+      required: true

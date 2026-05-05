@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "bin": {
-    "promptregistry": "./dist/cli/index.js"
+    "promptregistry": "dist/cli/index.js"
   },
   "exports": {
     ".": {
@@ -32,7 +32,9 @@
     "dev": "tsup --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "screenshot": "tsx scripts/screenshot.ts",
+    "prepublishOnly": "npm run typecheck && npm run build && npm test -- --run"
   },
   "dependencies": {
     "cac": "^6.7.14",
@@ -49,6 +51,7 @@
   "devDependencies": {
     "@types/node": "^22.19.17",
     "tsup": "^8.5.1",
+    "tsx": "^4.19.2",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
   },
@@ -62,9 +65,10 @@
     "registry"
   ],
   "license": "MIT",
+  "author": "Gabriele Magno <gabriele.magno@nearform.com>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gab/promptregistry.git"
+    "url": "git+https://github.com/nkwib/promptregistry.git"
   },
-  "homepage": "https://github.com/gab/promptregistry#readme"
+  "homepage": "https://github.com/nkwib/promptregistry#readme"
 }

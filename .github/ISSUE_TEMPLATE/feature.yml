@@ -1,0 +1,33 @@
+name: Feature request
+description: Suggest a new capability for promptregistry.
+title: "[feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, please skim the [non-goals section of the README](../../README.md#non-goals) and the [v2 deferred index](../../issues/999-v2-deferred.md). Hosted UI, eval running, migration importers, and template logic (`{{#if}}`, loops) are out of scope.
+
+  - type: textarea
+    id: usecase
+    attributes:
+      label: Use case
+      description: What are you trying to do? Describe the workflow, not the proposed solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed scope
+      description: What would the smallest possible version of this feature look like? Where would it live (CLI flag, manifest field, generated output, etc.)?
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing tools, workarounds, or in-tree shapes you ruled out and why.
+    validations:
+      required: false

@@ -2,12 +2,15 @@
 
 An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity.
 
-**The pitch:** a PM edits the remote prompt manifest and removes a variable. Your engineer's `tsc --noEmit` returns a human message naming the offending prompt, the removed variable, and the version-pin escape hatch.
+The wedge is two things together: a typed `pull` (each prompt entry is emitted as a runtime `.ts` with a named `XxxVars` type alias, so a missing variable is a normal `tsc` error that names the prompt) and lockfile-gated **Placeholder** integrity (the manifest hash is committed in `prompt-lock.json`, and `promptregistry check` fails if the remote was edited without a version bump). Built on the [promptkit](https://tprompt.pages.dev/) tagged-template primitive — see [promptkit's CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for the canonical vocabulary (Placeholder, Variables object, Compiled template, Parser). **Non-goals:** no hosted UI, no eval running, no migration importers, no template logic — variables only.
 
-```
-Remote prompt 'customer-onboarding@v3' removed variable 'customer_name' —
-update your call site or pin to a previous version.
-```
+A PM edits the remote manifest and removes a variable:
+
+![manifest before/after](./docs/hero-diff.svg)
+
+The next `tsc --noEmit` on a consumer's repo names the offending prompt and the removed variable:
+
+![rewritten tsc error](./docs/hero-tsc.svg)
 
 ## What it does
 
@@ -68,14 +71,11 @@ Wire into your build script:
 
 ## Relationship to promptkit
 
-PromptRegistry is built on the [promptkit](https://tprompt.pages.dev/) tagged-template primitive. PromptRegistry does not redefine promptkit's terms:
+PromptRegistry is built on the [promptkit](https://tprompt.pages.dev/) tagged-template primitive and reuses promptkit's vocabulary verbatim — see [promptkit's CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for the canonical definitions of **Placeholder**, **Variables object**, **Compiled template**, and **Parser**. PromptRegistry adds the operational layer on top: a Manifest as the source of truth, a typed `pull` via codegen, and a Lockfile-backed integrity gate. The package does not redefine those promptkit terms; if a section reads as if it does, file a bug.
 
-- **Placeholder** — the named slot inside a delimiter, e.g. `customerName` in `{{customerName}}`
-- **Variables object** — the object passed to `.with({...})`
-- **Compiled template** — the value returned by the `prompt` tag
-- **Parser** — the pair (delimiter, placeholder regex) that extracts placeholders
+## API reference
 
-See [promptkit's CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for canonical definitions.
+See [docs/api.md](./docs/api.md) for the manifest schema, pin grammar, lockfile shape, generated module shape, and per-command CLI reference.
 
 ## CLI commands
 

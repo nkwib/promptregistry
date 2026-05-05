@@ -5,7 +5,7 @@ import { version } from '../version.js'
 import { codegen } from '../codegen/index.js'
 import { check } from '../check/index.js'
 import { runTscRewrite } from '../check/tsc-rewrite.js'
-import { createLockfile, writeLockfile } from '../lockfile/io.js'
+import { createLockfile, writeLockfile, readLockfileIfExists, mergePulledAt } from '../lockfile/io.js'
 import { fetchManifest } from '../manifest/fetcher.js'
 import { init } from '../init/index.js'
 import type { PromptEntry } from '../manifest/schema.js'
@@ -33,17 +33,20 @@ cli
       manifestHash: fetched.hash,
     })
 
-    // Write lockfile
-    const lockfile = createLockfile(
-      fetched.manifest.prompts.map((p: PromptEntry) => ({
-        name: p.name,
-        version: p.version,
-        manifest_url: config.manifestUrl,
-        content_hash: fetched.hash,
-        pulled_at: new Date().toISOString(),
-      })),
-    )
-    writeLockfile(join(config.outDir, 'prompt-lock.json'), lockfile)
+    // Write lockfile, preserving pulled_at for unchanged entries so the
+    // file is byte-stable across re-runs (issue 004 acceptance criterion).
+    const lockfilePath = join(config.outDir, 'prompt-lock.json')
+    const existing = readLockfileIfExists(lockfilePath)
+    const now = new Date().toISOString()
+    const fresh = fetched.manifest.prompts.map((p: PromptEntry) => ({
+      name: p.name,
+      version: p.version,
+      manifest_url: config.manifestUrl,
+      content_hash: fetched.hash,
+      pulled_at: now,
+    }))
+    const lockfile = createLockfile(mergePulledAt(existing, fresh))
+    writeLockfile(lockfilePath, lockfile)
 
     console.log(`Generated ${fetched.manifest.prompts.length} prompt definitions in ${config.outDir}`)
   })
@@ -93,16 +96,18 @@ cli
     const { config } = await resolveConfig(cwd, parseOverrides(options))
 
     const fetched = await fetchManifest(config.manifestUrl)
-    const lockfile = createLockfile(
-      fetched.manifest.prompts.map((p: PromptEntry) => ({
-        name: p.name,
-        version: p.version,
-        manifest_url: config.manifestUrl,
-        content_hash: fetched.hash,
-        pulled_at: new Date().toISOString(),
-      })),
-    )
-    writeLockfile(join(config.outDir, 'prompt-lock.json'), lockfile)
+    const lockfilePath = join(config.outDir, 'prompt-lock.json')
+    const existing = readLockfileIfExists(lockfilePath)
+    const now = new Date().toISOString()
+    const fresh = fetched.manifest.prompts.map((p: PromptEntry) => ({
+      name: p.name,
+      version: p.version,
+      manifest_url: config.manifestUrl,
+      content_hash: fetched.hash,
+      pulled_at: now,
+    }))
+    const lockfile = createLockfile(mergePulledAt(existing, fresh))
+    writeLockfile(lockfilePath, lockfile)
 
     console.log(`Wrote lockfile with ${fetched.manifest.prompts.length} entries`)
   })
@@ -116,6 +121,7 @@ cli
 
     const result = await init(config)
     console.log(`Scaffolded manifest at ${result.manifestPath} with ${result.promptsFound} prompts`)
+    console.log(`Wrote starter lockfile at ${result.lockfilePath}`)
   })
 
 function parseOverrides(options: Record<string, unknown>): Partial<import('./config.js').PromptRegistryConfig> {
