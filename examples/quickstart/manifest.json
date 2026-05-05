@@ -1,0 +1,17 @@
+{
+  "manifest-format-version": "1",
+  "prompts": [
+    {
+      "name": "customer-summary",
+      "version": "v1",
+      "template": "Summarize the account for {{customerName}} on the {{planTier}} plan. They joined on {{joinDate}}.",
+      "delimiter": { "open": "{{", "close": "}}" }
+    },
+    {
+      "name": "welcome-message",
+      "version": "v1",
+      "template": "Welcome {{userName}}! Your locale is {{locale}}.",
+      "delimiter": { "open": "{{", "close": "}}" }
+    }
+  ]
+}

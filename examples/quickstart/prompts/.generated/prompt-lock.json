@@ -1,0 +1,19 @@
+{
+  "lockfile-format-version": "1",
+  "entries": [
+    {
+      "name": "customer-summary",
+      "version": "v1",
+      "manifest_url": "/Users/gab/code/promptregistry/examples/quickstart/manifest.json",
+      "content_hash": "d95e155afbec561dae255e898dd561051efe1a9bc1f397c967b618bb3cc3cbc8",
+      "pulled_at": "2026-05-05T08:28:27.718Z"
+    },
+    {
+      "name": "welcome-message",
+      "version": "v1",
+      "manifest_url": "/Users/gab/code/promptregistry/examples/quickstart/manifest.json",
+      "content_hash": "d95e155afbec561dae255e898dd561051efe1a9bc1f397c967b618bb3cc3cbc8",
+      "pulled_at": "2026-05-05T08:28:27.718Z"
+    }
+  ]
+}

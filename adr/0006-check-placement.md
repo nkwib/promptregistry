@@ -1,0 +1,44 @@
+---
+status: accepted
+---
+
+# `promptregistry check` placement: build-script integration + CI snippet
+
+## Placement
+
+`promptregistry check` is integrated into the user's `package.json` build scripts and into CI. It is not a pre-commit hook.
+
+## Why not a pre-commit hook
+
+Pre-commit hooks require a dependency (`husky`, `simple-git-hooks`, `lefthook`) in the user's repo. That dependency is foreign to PromptRegistry's scope and creates onboarding friction. The round-table converged on a sub-60-second zero-to-first-error path; adding a hook framework breaks that promise.
+
+## Why build-script integration
+
+The check command is fast (<2s without network, <5s with). It fits naturally into the existing TypeScript build flow:
+
+```json
+{
+  "scripts": {
+    "typecheck": "promptregistry check && tsc --noEmit"
+  }
+}
+```
+
+Engineers run `pnpm typecheck` locally before pushing. CI runs the same command. There is no separate hook infrastructure to maintain.
+
+## Why a CI snippet too
+
+The build-script integration is opt-in — a team could forget to add it to `package.json`. The CI snippet is the backstop. The README will ship a minimal GitHub Actions workflow that runs `promptregistry check --tsc` on every PR.
+
+## Considered options
+
+- **Pre-commit hook only.** Rejected — requires foreign dependency; easy to bypass with `--no-verify`.
+- **CI only.** Rejected — engineers only see errors after pushing; slower feedback loop.
+- **Pre-commit hook + CI.** Rejected — combines the foreign-dependency cost with redundancy.
+- **Build-script integration only, no CI snippet.** Rejected — no backstop for teams that forget to wire the script.
+
+## Consequences
+
+- The README's quickstart includes adding `"typecheck": "promptregistry check && tsc --noEmit"` to `package.json`.
+- A `.github/workflows/promptregistry.yml` snippet is provided as a copy-paste CI recipe.
+- The check command must remain fast enough that running it before every `tsc --noEmit` is not objectionable.
