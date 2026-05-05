@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "promptregistry": "file:../.."
+    "@nkwib/promptregistry": "file:../.."
   },
   "devDependencies": {
     "tsx": "^4.19.2",

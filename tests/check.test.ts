@@ -51,7 +51,7 @@ describe('check', () => {
 // Hash: ${hash}
 // Generated: 2024-01-01T00:00:00.000Z
 
-import { compile } from 'promptregistry/runtime'
+import { compile } from '@nkwib/promptregistry/runtime'
 
 export type GreetingVars = { name: string }
 

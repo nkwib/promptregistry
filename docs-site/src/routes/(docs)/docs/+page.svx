@@ -19,7 +19,7 @@ It is **variables only, no template logic** — no `{'{{#if}}'}`, no loops, no D
 <h2 id="installation">Installation</h2>
 
 ```sh
-npm install promptregistry
+npm install @nkwib/promptregistry
 # Optional: install typescript if you want to use `promptregistry init`.
 npm install --save-dev typescript
 ```
@@ -58,7 +58,7 @@ The generated module shape is:
 
 ```ts
 // prompts/.generated/customer-summary.ts (generated)
-import { compile } from 'promptregistry/runtime';
+import { compile } from '@nkwib/promptregistry/runtime';
 
 export type CustomerSummaryVars = {
   customerName: string;

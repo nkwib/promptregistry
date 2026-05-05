@@ -4,8 +4,8 @@ import { resolve } from 'node:path'
 export default defineConfig({
   resolve: {
     alias: {
-      'promptregistry/runtime': resolve(__dirname, 'src/runtime.ts'),
-      'promptregistry': resolve(__dirname, 'src/index.ts'),
+      '@nkwib/promptregistry/runtime': resolve(__dirname, 'src/runtime.ts'),
+      '@nkwib/promptregistry': resolve(__dirname, 'src/index.ts'),
     },
   },
   test: {

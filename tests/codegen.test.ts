@@ -61,7 +61,7 @@ describe('codegen', () => {
     expect(content).toContain('// Pin: customer-summary@v1')
     expect(content).toContain('customerName: string')
     expect(content).toContain('planTier: string')
-    expect(content).toContain("from 'promptregistry/runtime'")
+    expect(content).toContain("from '@nkwib/promptregistry/runtime'")
     expect(content).toContain('export type CustomerSummaryVars')
   })
 
