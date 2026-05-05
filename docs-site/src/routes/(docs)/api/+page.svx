@@ -1,0 +1,203 @@
+---
+title: 'promptregistry · API reference'
+---
+
+<svelte:head>
+  <title>promptregistry · API reference</title>
+  <meta
+    name="description"
+    content="Manifest schema, Pin grammar, prompt-lock.json drift kinds, CLI subcommands, and the generated module shape."
+  />
+</svelte:head>
+
+# API reference
+
+The canonical reference for promptregistry's public surface: the **Manifest** schema, **Pin** grammar, the **Lockfile** (`prompt-lock.json`), each CLI subcommand, and the shape of generated modules.
+
+promptregistry inherits its core vocabulary from promptkit. Terms below — _**Placeholder**_, _**Variables object**_, _**Compiled template**_, _**Parser**_ — are not redefined here. See [promptkit's CONTEXT.md](https://github.com/nkwib/tprompt/blob/main/CONTEXT.md) for canonical definitions.
+
+## Manifest
+
+A **Manifest** is a single JSON file at a static URL (GitHub raw, release asset, public bucket, or local path) that declares every prompt entry the application uses. The Manifest is the source of truth for `codegen`, `check`, and `init`.
+
+Minimal example:
+
+```json
+{
+  "manifest-format-version": "1",
+  "prompts": [
+    {
+      "name": "customer-summary",
+      "version": "v1",
+      "template": "Summarize the account for {{customerName}} on the {{planTier}} plan.",
+      "delimiter": { "open": "{{", "close": "}}" }
+    }
+  ]
+}
+```
+
+Each entry contains:
+
+| Field | Type | Notes |
+|-------|------|-------|
+| `name` | `string` | Matches `[A-Za-z0-9-_]+`. Becomes the camelCase export in the registry barrel. |
+| `version` | `string` | Free-form version tag (e.g. `v1`, `v2.0.1`). Pinned in the Lockfile. |
+| `template` | `string` | The template body containing _Placeholders_ wrapped in the entry's delimiter. |
+| `delimiter` | `{ open, close }` | The _Parser_'s opening and closing markers. |
+
+## Pin
+
+A **Pin** is the `name@version` string that uniquely identifies one Manifest entry. Examples: `customer-summary@v1`, `welcome-message@v2.0.1`.
+
+```
+Pin     := Name "@" Version
+Name    := matches [A-Za-z0-9-_]+
+Version := free-form tag (no whitespace, no "@")
+```
+
+Pins appear as the reference key in `prompt-lock.json` entries, and in the header comment of each generated `.ts`.
+
+## prompt-lock.json
+
+The **Lockfile** is committed alongside the Manifest. It records, for every Pin, the manifest URL and the SHA-256 content hash of the Manifest at the moment of `codegen` (or `lock`).
+
+```json
+{
+  "lockfile-format-version": "1",
+  "entries": [
+    {
+      "name": "customer-summary",
+      "version": "v1",
+      "manifest_url": "https://example.com/manifest.json",
+      "content_hash": "<sha256-of-the-manifest-payload>",
+      "pulled_at": "2026-05-05T08:28:27.718Z"
+    }
+  ]
+}
+```
+
+`promptregistry check` defines four kinds of **drift**:
+
+| Drift | Meaning |
+|-------|---------|
+| **Hash drift** | Lockfile content hash ≠ current remote Manifest hash. Someone edited the remote without a version bump. |
+| **Stale generated file** | A generated `.ts` header hash ≠ the lockfile hash. Codegen wasn't re-run. |
+| **Missing pin** | A generated file references a Pin that has no Lockfile entry. |
+| **Orphaned entry** | A Lockfile entry has no matching generated file. Surfaced as a warning. |
+
+`pulled_at` is preserved across re-runs when `(name, version, content_hash)` is unchanged, so the lockfile is byte-stable.
+
+## CLI commands
+
+The CLI is a single binary, `promptregistry`. Run any subcommand with `--help`.
+
+### codegen
+
+Generate runtime `.ts` files and `registry.ts` from the Manifest, and refresh `prompt-lock.json`.
+
+```
+$ promptregistry codegen [--manifest <url>] [--src <dirs>] [--out <dir>]
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--manifest <url>` | Manifest URL or path. Falls back to `promptregistry.config.json#manifestUrl`. |
+| `--src <dirs>` | Comma-separated source roots (used by static-analysis features). |
+| `--out <dir>` | Output directory for generated files (default `./prompts/.generated`). |
+
+Exit codes: `0` on success, `1` on Manifest validation or fetch failure.
+
+### check
+
+Cross-check the Manifest, Lockfile, and generated files. Fails on any drift.
+
+```
+$ promptregistry check [--tsc] [--manifest <url>] [--src <dirs>] [--out <dir>]
+```
+
+| Flag | Meaning |
+|------|---------|
+| `--tsc` | Also run `tsc --noEmit` and rewrite diagnostics involving a generated `XxxVars` type. |
+| `--manifest <url>` | Manifest URL or path. |
+| `--out <dir>` | Generated-files directory. |
+
+Exit codes: `0` clean, `1` drift detected, `2` `tsc` reported errors (with `--tsc`).
+
+### lock
+
+Write `prompt-lock.json` from the current Manifest. Use this after a deliberate version bump.
+
+```
+$ promptregistry lock [--manifest <url>] [--out <dir>]
+```
+
+Exit codes: `0` on success, `1` on Manifest fetch / validation failure.
+
+### init
+
+Scaffold a Manifest by scanning a source directory for existing `prompt()` call-sites. Lazy-loads `typescript`; install it as a dev dep first.
+
+```
+$ promptregistry init [--src <dir>]
+```
+
+Exit codes: `0` on success, `1` if no `prompt()` call-sites are found.
+
+## Generated module shape
+
+For a Manifest entry named `customer-summary`, `codegen` writes `<outDir>/customer-summary.ts`:
+
+```ts
+// Generated by promptregistry — do not edit by hand
+// Pin: customer-summary@v1
+// Hash: <sha256>
+
+import { compile } from 'promptregistry/runtime';
+
+export type CustomerSummaryVars = {
+  customerName: string;
+  planTier: string;
+};
+
+const _template = compile<CustomerSummaryVars>(
+  'Summarize the account for {{customerName}} on the {{planTier}} plan.',
+  { open: '{{', close: '}}' },
+);
+
+export default _template;
+```
+
+Each generated module exports:
+
+| Symbol | Meaning |
+|--------|--------|
+| `XxxVars` (named type) | The _Variables object_ shape inferred from the entry's _Placeholders_. The named alias is what makes a missing-variable `tsc` error name the prompt. |
+| `default` (the _Compiled template_) | A runtime value with `.with(vars)`, `.partial(vars)`, `.validate(schema)`, `.validateSafe(schema)`. |
+
+The registry barrel `<outDir>/registry.ts` re-exports each prompt as a camelCase named import:
+
+```ts
+export { default as customerSummary } from './customer-summary.js';
+export { default as welcomeMessage } from './welcome-message.js';
+```
+
+## Public package surface
+
+End users do not import runtime values from `promptregistry` directly; they import the generated modules from `<outDir>/registry.js`.
+
+### `import type { ... } from 'promptregistry'`
+
+Type-only exports. Re-exported from promptkit:
+
+| Name | Meaning |
+|------|--------|
+| `CompiledTemplate<Vars>` | The shape of a _Compiled template_. |
+| `PromptTag<Open, Close>` | The shape of a tagged-template factory parameterised by delimiter. |
+
+### `promptregistry/runtime`
+
+Exports a `compile()` helper. It exists so that the generated `.ts` files have a stable runtime to import. **It is an implementation detail of codegen, not a public API.** Do not import from `promptregistry/runtime` in handwritten code; import from the registry barrel instead.
+
+### CLI
+
+The `promptregistry` binary is the public CLI surface. Its subcommands and flags are documented above.

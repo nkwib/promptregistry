@@ -1,0 +1,44 @@
+---
+title: 'ADR-0005 · prompt-lock.json semantics'
+---
+
+<svelte:head>
+  <title>ADR-0005 · Lock semantics · promptregistry</title>
+  <meta
+    name="description"
+    content="prompt-lock.json is committed, fail-only-on-check at runtime, with three hard errors and one warning. Why pull() does not throw on stale lockfiles."
+  />
+</svelte:head>
+
+# ADR-0005 · `prompt-lock.json` semantics: committed, fail-only-on-check, three hard errors + one warning
+
+**Status:** Accepted
+
+## Committed to git
+
+`prompt-lock.json` is committed, not gitignored. The analogy to `package-lock.json` is intentional: it pins the manifest content hashes for reproducible codegen across teammates and CI. A gitignored lockfile would mean every engineer has their own hashes, and the "teammate edits the manifest, CI catches it" story collapses.
+
+## Fail-only-on-check at runtime
+
+The internal `pull()` utility does **not** throw when the lockfile is stale or missing. Runtime remains permissive. The integrity gate is `promptregistry check` (and its `--tsc` variant). This keeps the runtime lean and makes the check command load-bearing.
+
+## What counts as drift
+
+`promptregistry check` evaluates four conditions per Pin:
+
+1. **Hash drift (hard error):** The remote manifest content hash differs from the lockfile hash. This is the silent-shipping bug the lockfile exists to catch — someone edited the manifest without bumping the version.
+2. **Stale generated file (hard error):** A generated `.ts` header hash differs from the lockfile hash. Codegen wasn't re-run after a manifest update.
+3. **Missing pin (hard error):** A generated file's Pin has no corresponding entry in the lockfile. The lockfile is incomplete or hand-edited.
+4. **Orphaned lockfile entry (warning, non-blocking):** The lockfile has an entry for a Pin that no generated file references. Housekeeping noise, not a failure.
+
+## Considered options
+
+- **Gitignored lockfile.** Rejected — defeats cross-team reproducibility.
+- **Fail-on-pull at runtime.** Rejected — runtime should not depend on build artifacts for correctness; the check command is the explicit gate.
+- **Treat orphaned entries as hard errors.** Rejected — they are harmless dead weight; failing CI on housekeeping creates noise.
+
+## Consequences
+
+- CI must run `promptregistry check` (or `promptregistry check --tsc`) as a mandatory step.
+- The check result includes a `warnings` array so the check command can surface orphaned entries without failing the exit code.
+- The README ships `"typecheck": "promptregistry check && tsc --noEmit"` as the canonical build script.

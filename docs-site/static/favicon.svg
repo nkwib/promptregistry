@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
+  <style>
+    .s { fill: none; stroke: #18181b; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+    .dot { fill: #c2410e; }
+    @media (prefers-color-scheme: dark) {
+      .s { stroke: #f4f4f5; }
+      .dot { fill: #fb923c; }
+    }
+  </style>
+  <rect class="s" x="3" y="3" width="26" height="26" rx="5" />
+  <line class="s" x1="8" y1="11" x2="24" y2="11" />
+  <line class="s" x1="8" y1="16" x2="20" y2="16" />
+  <line class="s" x1="8" y1="21" x2="22" y2="21" />
+  <circle class="dot" cx="25.5" cy="21" r="1.8" />
+</svg>

@@ -1,0 +1,136 @@
+---
+title: 'promptregistry · Guide'
+---
+
+<svelte:head>
+  <title>promptregistry · Guide</title>
+  <meta
+    name="description"
+    content="A static prompt manifest with typed named imports and lockfile-gated integrity. Walkthrough: author a manifest, generate the registry barrel, consume it from your app, gate the build."
+  />
+</svelte:head>
+
+# Guide
+
+`promptregistry` turns a static JSON manifest into typed, greppable named imports with a committed lockfile. The package is a TypeScript SDK + a small CLI built on top of [promptkit](https://tprompt.pages.dev/).
+
+It is **variables only, no template logic** — no `{'{{#if}}'}`, no loops, no DSL. If you need conditionals or iteration, build them in TypeScript and compose strings.
+
+<h2 id="installation">Installation</h2>
+
+```sh
+npm install promptregistry
+# Optional: install typescript if you want to use `promptregistry init`.
+npm install --save-dev typescript
+```
+
+Requires Node 20+. The CLI installs a single bin entry: `promptregistry`.
+
+<h2 id="manifest">Author a manifest</h2>
+
+The manifest is a JSON file you host anywhere a static GET will reach it — GitHub raw, a release asset, or a public bucket. Each entry has a name, a version tag, a template, and a delimiter pair.
+
+```json
+{
+  "manifest-format-version": "1",
+  "prompts": [
+    {
+      "name": "customer-summary",
+      "version": "v1",
+      "template": "Summarize the account for {{customerName}} on the {{planTier}} plan. They joined on {{joinDate}}.",
+      "delimiter": { "open": "{{", "close": "}}" }
+    }
+  ]
+}
+```
+
+Names must match `[A-Za-z0-9-_]+`. Version is an opaque string — no semver inference, on purpose. Pin format is `name@version`.
+
+<h2 id="codegen">Run codegen</h2>
+
+```sh
+npx promptregistry codegen --manifest ./manifest.json --out ./prompts/.generated
+```
+
+This emits, per prompt, one runtime `<name>.ts` whose default export is a `CompiledTemplate<XxxVars>`, plus a `registry.ts` barrel that re-exports each as a named identifier (kebab-cased to camelCase). It also writes `prompt-lock.json` next to the generated files, pinning every entry to its content hash.
+
+The generated module shape is:
+
+```ts
+// prompts/.generated/customer-summary.ts (generated)
+import { compile } from 'promptregistry/runtime';
+
+export type CustomerSummaryVars = {
+  customerName: string;
+  planTier: string;
+  joinDate: string;
+};
+
+const _template = compile<CustomerSummaryVars>(
+  'Summarize the account for {{customerName}} on the {{planTier}} plan. They joined on {{joinDate}}.',
+  { open: '{{', close: '}}' },
+);
+
+export default _template;
+```
+
+The named `XxxVars` alias is the load-bearing trick: `tsc`'s native missing-property error already names the prompt as `'CustomerSummaryVars'`, so the rewriter only needs to add the version-pin escape hatch.
+
+<h2 id="consume">Consume the barrel</h2>
+
+```ts
+import { customerSummary } from './prompts/.generated/registry.js';
+
+const text = customerSummary.with({
+  customerName: 'Ada',
+  planTier: 'Pro',
+  joinDate: '2024-01-15',
+});
+```
+
+Under `--module nodenext`, the `.js` extension on the import is required even though the file on disk is `.ts`.
+
+The exported `customerSummary` is a `CompiledTemplate<CustomerSummaryVars>`. It carries `.with(vars)`, `.partial(vars)` (returns a new compiled template), and the placeholder array.
+
+<h2 id="check">check + drift detection</h2>
+
+```sh
+npx promptregistry check --manifest ./manifest.json --out ./prompts/.generated
+```
+
+`check` cross-compares four things and exits non-zero on any disagreement:
+
+| Check                | What it catches                                                                |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `hash-drift`         | The remote manifest was edited without a version bump.                          |
+| `stale-dts`          | A generated `.ts` header hash ≠ the lockfile hash (codegen wasn't re-run).      |
+| `missing-pin`        | A generated file references a Pin that has no lockfile entry.                   |
+| `orphaned-entry`     | Lockfile holds a Pin no longer present in the generated set (warning, not error). |
+
+Wire it into the build:
+
+```json
+{
+  "scripts": {
+    "typecheck": "promptregistry check && tsc --noEmit"
+  }
+}
+```
+
+<h2 id="tsc">check --tsc</h2>
+
+`promptregistry check --tsc` runs a regular `tsc --noEmit` after the basic checks pass, then rewrites any diagnostic that involves a generated `XxxVars` type. The locked wording is:
+
+```
+Remote prompt 'customer-summary@v1' removed variable 'joinDate' — update the call site (src/main.ts:5) or pin to a previous version.
+```
+
+Because the type alias name carries the prompt identity, the rewriter only fires for diagnostics that actually involve the generated surface — unrelated `tsc` errors pass through untouched.
+
+<h2 id="non-goals">Non-goals</h2>
+
+- No hosted UI, no backend, no auth.
+- No template logic — variables only.
+- No eval running. Use [promptfoo](https://www.promptfoo.dev/) for that.
+- No migration importers from Langfuse / PromptLayer.
+- `pull('name@version')` is internal-only ([ADR-0004](/adr/0004-barrel-only-public-api)). Consumers always go through the barrel.
