@@ -3,8 +3,11 @@
  *
  * Resolution order (highest priority wins):
  * 1. CLI flags
- * 2. promptregistry.config.{ts,js,json}
+ * 2. promptregistry.config.{js,mjs,cjs,json}
  * 3. Defaults
+ *
+ * `.ts` configs are detected but rejected with a friendly error: the built
+ * CLI is plain JS and does not ship a TypeScript loader. See loadConfigFile.
  */
 
 import { readFileSync, existsSync } from 'node:fs'
@@ -21,11 +24,14 @@ export interface PromptRegistryConfig {
   outDir: string
 }
 
+// `.strict()` so typos in promptregistry.config.* surface as a config error
+// instead of being silently ignored. This is a user-facing config: anything
+// extra in here is almost certainly a mistake.
 const partialConfigSchema = z.object({
   manifestUrl: z.string().min(1).optional(),
   srcRoots: z.array(z.string().min(1)).optional(),
   outDir: z.string().min(1).optional(),
-})
+}).strict()
 
 export const defaultConfig: PromptRegistryConfig = {
   manifestUrl: './manifest.json',
@@ -90,18 +96,41 @@ async function loadConfigFile(configPath: string): Promise<Partial<PromptRegistr
       )
     }
   } else {
+    // The built CLI runs as plain JS — Node's `import()` cannot read `.ts`
+    // sources without a loader (`tsx`, `ts-node`, `jiti`, …). We don't ship
+    // one, so refuse early with an actionable message instead of letting the
+    // user hit a cryptic ERR_UNKNOWN_FILE_EXTENSION at runtime.
+    if (configPath.endsWith('.ts') || configPath.endsWith('.mts') || configPath.endsWith('.cts')) {
+      throw new ConfigError(
+        `Cannot load TypeScript config "${configPath}". The promptregistry CLI does not bundle a TypeScript loader. ` +
+        `Use a .js / .mjs / .json config, or run the CLI through a loader (e.g. \`tsx node_modules/.bin/promptregistry ...\`).`,
+        'load-failed',
+      )
+    }
     const fileUrl = pathToFileURL(configPath).href
-    const module = await import(fileUrl) as { default?: unknown } & Record<string, unknown>
+    let module: { default?: unknown } & Record<string, unknown>
+    try {
+      module = await import(fileUrl) as { default?: unknown } & Record<string, unknown>
+    } catch (error) {
+      throw new ConfigError(
+        `Failed to load config ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+        'load-failed',
+      )
+    }
     raw = isPlainObject(module.default) ? module.default : module
   }
 
-  const candidate = isPlainObject(raw)
-    ? {
-        manifestUrl: raw.manifestUrl,
-        srcRoots: raw.srcRoots,
-        outDir: raw.outDir,
-      }
-    : raw
+  // For non-JSON modules the imported namespace also includes ESM machinery
+  // like `default` / Symbol.toStringTag. Strip down to a plain object whose
+  // keys came from the user before handing it to the strict Zod schema, so
+  // we only flag keys the *user* actually wrote.
+  let candidate: unknown = raw
+  if (isPlainObject(raw)) {
+    const userKeys = Object.keys(raw).filter(
+      (k) => k !== 'default' && k !== '__esModule',
+    )
+    candidate = Object.fromEntries(userKeys.map((k) => [k, raw[k]]))
+  }
 
   const parsed = partialConfigSchema.safeParse(candidate)
   if (!parsed.success) {

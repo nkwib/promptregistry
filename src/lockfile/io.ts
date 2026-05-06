@@ -82,5 +82,12 @@ export function mergePulledAt(
  */
 export function readLockfileIfExists(path: string): Lockfile | null {
   if (!existsSync(path)) return null
-  return readLockfile(path)
+  try {
+    return readLockfile(path)
+  } catch {
+    // Malformed JSON or schema mismatch — callers expect null so they can
+    // treat the file as absent and start fresh, matching this function's
+    // documented contract.
+    return null
+  }
 }

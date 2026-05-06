@@ -18,11 +18,11 @@ cli
   .help()
 
 cli
-  .command('codegen', 'Generate .d.ts and registry.ts from the manifest')
+  .command('codegen', 'Generate runtime .ts files and registry.ts from the manifest')
   .option('--manifest <url>', 'Manifest URL or path')
   .option('--src <dirs>', 'Source directories (comma-separated)')
   .option('--out <dir>', 'Output directory')
-  .action(async (options) => {
+  .action(withErrorHandler(async (options) => {
     const cwd = process.cwd()
     const { config } = await resolveConfig(cwd, parseOverrides(options))
 
@@ -49,7 +49,7 @@ cli
     writeLockfile(lockfilePath, lockfile)
 
     console.log(`Generated ${fetched.manifest.prompts.length} prompt definitions in ${config.outDir}`)
-  })
+  }))
 
 cli
   .command('check', 'Cross-check manifest, lockfile, and generated files')
@@ -57,7 +57,7 @@ cli
   .option('--manifest <url>', 'Manifest URL or path')
   .option('--src <dirs>', 'Source directories (comma-separated)')
   .option('--out <dir>', 'Output directory')
-  .action(async (options) => {
+  .action(withErrorHandler(async (options) => {
     const cwd = process.cwd()
     const { config } = await resolveConfig(cwd, parseOverrides(options))
 
@@ -82,16 +82,19 @@ cli
         console.log(tscResult.output)
       }
       if (tscResult.exitCode !== 0) {
-        process.exit(tscResult.exitCode)
+        // Documented contract (docs/api.md): `--tsc` returns exit code 2 when
+        // tsc itself reports errors, so CI scripts can distinguish drift (1)
+        // from type errors (2).
+        process.exit(2)
       }
     }
-  })
+  }))
 
 cli
   .command('lock', 'Write prompt-lock.json from the current manifest')
   .option('--manifest <url>', 'Manifest URL or path')
   .option('--out <dir>', 'Output directory')
-  .action(async (options) => {
+  .action(withErrorHandler(async (options) => {
     const cwd = process.cwd()
     const { config } = await resolveConfig(cwd, parseOverrides(options))
 
@@ -110,19 +113,19 @@ cli
     writeLockfile(lockfilePath, lockfile)
 
     console.log(`Wrote lockfile with ${fetched.manifest.prompts.length} entries`)
-  })
+  }))
 
 cli
   .command('init', 'Scaffold manifest from existing prompt() call-sites')
   .option('--src <dir>', 'Source directory to scan')
-  .action(async (options) => {
+  .action(withErrorHandler(async (options) => {
     const cwd = process.cwd()
     const { config } = await resolveConfig(cwd, parseOverrides(options))
 
     const result = await init(config)
     console.log(`Scaffolded manifest at ${result.manifestPath} with ${result.promptsFound} prompts`)
     console.log(`Wrote starter lockfile at ${result.lockfilePath}`)
-  })
+  }))
 
 function parseOverrides(options: Record<string, unknown>): Partial<import('./config.js').PromptRegistryConfig> {
   const overrides: Partial<import('./config.js').PromptRegistryConfig> = {}
@@ -138,6 +141,26 @@ function parseOverrides(options: Record<string, unknown>): Partial<import('./con
   }
 
   return overrides
+}
+
+/**
+ * Wraps an async CLI action so unhandled rejections become a single-line
+ * friendly error and a non-zero exit, instead of leaking a raw stack trace.
+ * `process.exit` calls inside the action remain authoritative — only thrown
+ * errors flow through the catch.
+ */
+function withErrorHandler<T extends Record<string, unknown>>(
+  action: (options: T) => Promise<void>,
+): (options: T) => Promise<void> {
+  return async (options: T) => {
+    try {
+      await action(options)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      console.error(`Error: ${message}`)
+      process.exit(1)
+    }
+  }
 }
 
 cli.parse()

@@ -53,13 +53,25 @@ export async function fetchManifest(
     return fetchFromFile(url)
   }
 
+  // Parse hostname / pathname so attacker-supplied URLs like
+  // `https://evil.com/raw.githubusercontent.com/...` cannot impersonate trusted
+  // sources via substring match.
+  let parsed: URL
+  try {
+    parsed = new URL(url)
+  } catch {
+    throw new ManifestFetchError(`Invalid URL: ${url}`, 'unsupported-url')
+  }
+  const hostname = parsed.hostname.toLowerCase()
+  const pathname = parsed.pathname
+
   // GitHub raw
-  if (url.includes('raw.githubusercontent.com')) {
+  if (hostname === 'raw.githubusercontent.com') {
     return fetchFromHttp(url, { expectedStatus: 200, ...options })
   }
 
   // GitHub release asset
-  if (url.includes('github.com') && url.includes('/releases/download/')) {
+  if (hostname === 'github.com' && pathname.includes('/releases/download/')) {
     return fetchFromHttp(url, { expectedStatus: 200, followRedirects: true, ...options })
   }
 

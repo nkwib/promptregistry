@@ -35,7 +35,6 @@
     "dev": "tsup --watch",
     "test": "vitest",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src --ext .ts",
     "screenshot": "tsx scripts/screenshot.ts",
     "prepublishOnly": "npm run typecheck && npm run build && npm test -- --run"
   },
