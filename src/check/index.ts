@@ -11,6 +11,7 @@ import { readLockfile, findLockfileEntry, type Lockfile } from '../lockfile/io.j
 import { parseDtsHeader } from '../codegen/header.js'
 import { parsePin } from '../pin.js'
 import type { PromptRegistryConfig } from '../cli/config.js'
+import type { Manifest } from '../manifest/schema.js'
 
 export interface CheckResult {
   ok: boolean
@@ -44,9 +45,11 @@ export async function check(config: PromptRegistryConfig): Promise<CheckResult> 
 
   // 1. Load manifest
   let manifestHash: string
+  let manifest: Manifest
   try {
     const fetched = await fetchManifest(config.manifestUrl)
     manifestHash = fetched.hash
+    manifest = fetched.manifest
   } catch (error) {
     return {
       ok: false,
@@ -142,6 +145,26 @@ export async function check(config: PromptRegistryConfig): Promise<CheckResult> 
           pin,
         })
       }
+    }
+  }
+
+  // 5. Detect version drift: a Manifest entry whose version is not present in
+  // the Lockfile for the same `name` while the Lockfile *does* have a prior
+  // version of that prompt. This surfaces "the manifest was bumped but
+  // `promptregistry codegen` / `lock` was not re-run", which would otherwise
+  // hide behind hash drift.
+  if (lockfile) {
+    for (const entry of manifest.prompts) {
+      const exact = findLockfileEntry(lockfile, entry.name, entry.version)
+      if (exact) continue
+      const priorByName = lockfile.entries.find((e) => e.name === entry.name)
+      if (!priorByName) continue
+      const pin = `${entry.name}@${entry.version}`
+      errors.push({
+        code: 'version-drift',
+        message: `Version drift for "${entry.name}": manifest declares ${entry.version} but lockfile pins ${priorByName.version}. Re-run 'promptregistry codegen' (or 'promptregistry lock') after the version bump.`,
+        pin,
+      })
     }
   }
 

@@ -7,6 +7,7 @@ import {
   writeLockfile,
   createLockfile,
   findLockfileEntry,
+  readLockfileIfExists,
 } from '../src/lockfile/io'
 
 describe('lockfile I/O', () => {
@@ -118,6 +119,24 @@ describe('lockfile I/O', () => {
     const path = join(tmpDir, 'incomplete-lock.json')
     writeFileSync(path, JSON.stringify({ 'lockfile-format-version': '1', entries: [{ name: 'x' }] }))
     expect(() => readLockfile(path)).toThrow()
+  })
+
+  it('readLockfileIfExists returns null for missing file', () => {
+    expect(readLockfileIfExists(join(tmpDir, 'does-not-exist.json'))).toBeNull()
+  })
+
+  it('readLockfileIfExists returns null for malformed JSON (per JSDoc contract)', () => {
+    mkdirSync(tmpDir, { recursive: true })
+    const path = join(tmpDir, 'malformed-ifexists.json')
+    writeFileSync(path, '{ this is not json')
+    expect(readLockfileIfExists(path)).toBeNull()
+  })
+
+  it('readLockfileIfExists returns null for schema-invalid lockfile', () => {
+    mkdirSync(tmpDir, { recursive: true })
+    const path = join(tmpDir, 'schema-invalid-ifexists.json')
+    writeFileSync(path, JSON.stringify({ 'lockfile-format-version': '1', entries: [{ name: 'x' }] }))
+    expect(readLockfileIfExists(path)).toBeNull()
   })
 
   // Cleanup
