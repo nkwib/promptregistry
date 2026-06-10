@@ -11,7 +11,12 @@ export interface FetchedManifest {
   bytes: Buffer
   /** Parsed and validated manifest */
   manifest: Manifest
-  /** SHA-256 hash of the canonical bytes */
+  /**
+   * SHA-256 over the raw manifest bytes (byte-integrity gate). This is a hash
+   * of the exact bytes served — NOT a canonicalized/normalized form. Any
+   * whitespace or key-order change to the remote manifest flips the hash and
+   * trips `hash-drift` by design: the lockfile pins the bytes you reviewed.
+   */
   hash: string
   /** Original URL */
   url: string
@@ -189,6 +194,9 @@ function parseManifestBytes(bytes: Buffer, url: string): FetchedManifest {
     throw new ManifestFetchError('Response is not valid JSON', 'malformed-json')
   }
 
+  // Hash the raw bytes as served (byte-integrity gate), not a normalized
+  // form. Reformatting the remote JSON (whitespace, key order) intentionally
+  // counts as drift — the lockfile pins the exact bytes that were reviewed.
   const hash = sha256(bytes)
 
   try {
