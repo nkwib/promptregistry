@@ -34,7 +34,9 @@ function makeSandbox(): Sandbox {
     srcRoot,
     outDir,
     manifestPath: join(root, 'prompts', 'manifest.json'),
-    lockfilePath: join(root, 'prompts', 'prompt-lock.json'),
+    // The lockfile must land in `outDir` — that's where `codegen`, `lock`, and
+    // `check` all read it (join(outDir, 'prompt-lock.json')).
+    lockfilePath: join(outDir, 'prompt-lock.json'),
     config: {
       manifestUrl: join(root, 'prompts', 'manifest.json'),
       srcRoots: [srcRoot],
@@ -106,7 +108,7 @@ describe('init', () => {
     await expect(init(sb.config)).rejects.toThrow(/Duplicate prompt name inferred/)
   })
 
-  it('writes a starter lockfile next to manifest.json with one entry per prompt', async () => {
+  it('writes a starter lockfile into outDir with one entry per prompt', async () => {
     writeFileSync(
       join(sb.srcRoot, 'a.ts'),
       `const a = prompt\`A {{x}}\`\nexport { a }\n`,
@@ -163,5 +165,33 @@ describe('init', () => {
 
     const init = await loadInit()
     await expect(init(sb.config)).rejects.toThrow(/No prompt\(\) call-sites found/)
+  })
+
+  it('writes the lockfile where check looks for it (no missing-lockfile after init)', async () => {
+    // Regression: `init` used to write `prompt-lock.json` next to manifest.json
+    // (dirname(manifestPath)), but `check`/`codegen`/`lock` read it from
+    // `join(config.outDir, 'prompt-lock.json')`. With the default config those
+    // are different directories, so `check` reported `missing-lockfile`
+    // immediately after a successful `init`.
+    writeFileSync(
+      join(sb.srcRoot, 'greeting.ts'),
+      `const greeting = prompt\`Hello {{name}}!\`\nexport { greeting }\n`,
+    )
+
+    const init = await loadInit()
+    const result = await init(sb.config)
+
+    // The lockfile must be in outDir, which is what check reads.
+    expect(result.lockfilePath).toBe(join(sb.outDir, 'prompt-lock.json'))
+    expect(existsSync(join(sb.outDir, 'prompt-lock.json'))).toBe(true)
+
+    const { check } = await import('../src/check')
+    const checkResult = await check(sb.config)
+
+    // check must not report missing-lockfile after init.
+    expect(checkResult.errors.some((e) => e.code === 'missing-lockfile')).toBe(false)
+    // No generated .ts files yet, so the only signal is an orphaned-entry
+    // warning — which does not fail the check.
+    expect(checkResult.ok).toBe(true)
   })
 })

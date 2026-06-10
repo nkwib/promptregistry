@@ -10,4 +10,10 @@ export default defineConfig({
   external: ['typescript', 'cac', 'zod'],
   target: 'node20',
   splitting: false,
+  // Keep the `node:` prefix on built-in imports. tsup/esbuild strips it by
+  // default, leaving bare `require("fs")` / `from "crypto"` in dist, which
+  // weakens the built-in/userland distinction (and breaks runtimes that only
+  // resolve the prefixed form). We author with `node:` everywhere, so preserve
+  // it in the output.
+  removeNodeProtocol: false,
 })
