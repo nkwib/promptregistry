@@ -19,7 +19,7 @@
   <div class="inner">
     <a href="/" class="brand" aria-label="promptregistry home">
       <Logo />
-      <span class="version" aria-hidden="true">v0.1</span>
+      <span class="version" aria-hidden="true">v0.2</span>
     </a>
 
     <nav class="nav" aria-label="Primary">

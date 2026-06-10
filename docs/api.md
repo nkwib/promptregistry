@@ -57,7 +57,7 @@ Pins appear in two places: as the reference key in `prompt-lock.json` entries, a
 
 ## `prompt-lock.json`
 
-The **Lockfile** is committed alongside the Manifest. It records, for every Pin, the manifest URL and the SHA-256 content hash of the Manifest at the moment of `codegen` (or `lock`).
+The **Lockfile** is committed alongside the Manifest. It records, for every Pin, the manifest URL and the SHA-256 content hash of the Manifest at the moment of `codegen` (or `lock`). The hash is taken over the **raw manifest bytes as served** (a byte-integrity gate), not a canonicalized form.
 
 Shape:
 
@@ -80,7 +80,7 @@ Shape:
 
 | Drift | Meaning |
 |-------|---------|
-| **Hash drift** | The content hash recorded in the Lockfile does not match the current remote Manifest hash. Someone edited the remote without a version bump. |
+| **Hash drift** | The content hash recorded in the Lockfile does not match the current remote Manifest hash. Someone edited the remote without a version bump. Because the hash is over raw bytes, reformatting the remote (whitespace or key-order changes) counts as drift by design. |
 | **Version drift** | The Manifest declares a version that differs from the Lockfile entry for the same `name`. Re-run `promptregistry lock` after intentionally bumping. |
 | **Missing pin** | A Pin referenced by generated code or the registry barrel has no corresponding Lockfile entry. |
 | **Orphaned pin** | A Lockfile entry has no matching Manifest entry — the prompt was removed remotely. |
@@ -169,7 +169,7 @@ $ promptregistry init [--src <dir>]
 |------|---------|
 | `--src <dir>` | Source directory to scan (default `./src`). |
 
-Exit codes: `0` on success, `1` if the source directory does not exist.
+Exit codes: `0` on success, `1` if no `prompt()` call-sites are found. Missing source directories are skipped silently, not treated as an error.
 
 Example:
 

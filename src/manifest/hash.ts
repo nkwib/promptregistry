@@ -1,6 +1,10 @@
 /**
  * Shared sha256 helper for manifest content hashing.
  *
+ * Hashes the raw manifest bytes as-is (byte-integrity gate) — there is no
+ * canonicalization or normalization step. Whitespace or key-order changes to
+ * the manifest therefore change the hash and count as drift by design.
+ *
  * Used by both the fetcher (for remote/local manifest content) and `init`
  * (when bootstrapping a starter `prompt-lock.json` against the freshly
  * scaffolded `manifest.json`).
