@@ -59,7 +59,7 @@ Pins appear as the reference key in `prompt-lock.json` entries, and in the heade
 
 ## prompt-lock.json
 
-The **Lockfile** is committed alongside the Manifest. It records, for every Pin, the manifest URL and the SHA-256 content hash of the Manifest at the moment of `codegen` (or `lock`).
+The **Lockfile** is committed alongside the Manifest. It records, for every Pin, the manifest URL and the SHA-256 content hash of the Manifest at the moment of `codegen` (or `lock`). The hash is taken over the **raw manifest bytes as served** (a byte-integrity gate), not a canonicalized form.
 
 ```json
 {
@@ -84,6 +84,8 @@ The **Lockfile** is committed alongside the Manifest. It records, for every Pin,
 | **Stale generated file** | A generated `.ts` header hash ≠ the lockfile hash. Codegen wasn't re-run. |
 | **Missing pin** | A generated file references a Pin that has no Lockfile entry. |
 | **Orphaned entry** | A Lockfile entry has no matching generated file. Surfaced as a warning. |
+
+Because the hash is over raw bytes, reformatting the remote manifest — whitespace or key-order changes — counts as **hash drift** by design.
 
 `pulled_at` is preserved across re-runs when `(name, version, content_hash)` is unchanged, so the lockfile is byte-stable.
 

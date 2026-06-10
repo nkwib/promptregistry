@@ -26,7 +26,7 @@ The internal `pull()` utility does **not** throw when the lockfile is stale or m
 
 `promptregistry check` evaluates four conditions per Pin:
 
-1. **Hash drift (hard error):** The remote manifest content hash differs from the lockfile hash. This is the silent-shipping bug the lockfile exists to catch — someone edited the manifest without bumping the version.
+1. **Hash drift (hard error):** The remote manifest content hash differs from the lockfile hash. This is the silent-shipping bug the lockfile exists to catch — someone edited the manifest without bumping the version. The hash is taken over the **raw manifest bytes as served** (a byte-integrity gate), not a canonicalized form: reformatting the remote JSON — whitespace or key-order changes — flips the hash and trips this check by design.
 2. **Stale generated file (hard error):** A generated `.ts` header hash differs from the lockfile hash. Codegen wasn't re-run after a manifest update.
 3. **Missing pin (hard error):** A generated file's Pin has no corresponding entry in the lockfile. The lockfile is incomplete or hand-edited.
 4. **Orphaned lockfile entry (warning, non-blocking):** The lockfile has an entry for a Pin that no generated file references. Housekeeping noise, not a failure.

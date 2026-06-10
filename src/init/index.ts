@@ -5,8 +5,8 @@
  * the AST and we don't want to force every consumer to install it.
  */
 
-import { readFileSync, writeFileSync, existsSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { validateManifest } from '../manifest/schema.js'
 import { sha256 } from '../manifest/hash.js'
@@ -90,13 +90,21 @@ export async function init(config: PromptRegistryConfig): Promise<InitResult> {
   // Validate before writing
   validateManifest(manifest)
 
+  // Ensure `outDir` exists on a fresh `init` (e.g. the default
+  // `./prompts/.generated`). Creating it recursively also creates its parent,
+  // which is where `manifest.json` lands.
+  mkdirSync(config.outDir, { recursive: true })
+
   const manifestPath = join(config.outDir, '..', 'manifest.json')
   const manifestBytes = JSON.stringify(manifest, null, 2) + '\n'
   writeFileSync(manifestPath, manifestBytes)
 
-  // Bootstrap a starter prompt-lock.json next to the manifest. Issue 008
-  // acceptance: "Writes manifest.json and a starter prompt-lock.json
-  // referencing it as a local file URL."
+  // Bootstrap a starter prompt-lock.json in `outDir`, where `codegen`, `lock`,
+  // and `check` all expect it (they read `join(config.outDir,
+  // 'prompt-lock.json')`). Writing it anywhere else would make `check` report
+  // `missing-lockfile` right after a successful `init`. Issue 008 acceptance:
+  // "Writes manifest.json and a starter prompt-lock.json referencing it as a
+  // local file URL."
   const manifestHash = sha256(manifestBytes)
   const manifestUrl = pathToFileURL(manifestPath).href
   const pulledAt = new Date().toISOString()
@@ -109,7 +117,7 @@ export async function init(config: PromptRegistryConfig): Promise<InitResult> {
       pulled_at: pulledAt,
     })),
   )
-  const lockfilePath = join(dirname(manifestPath), 'prompt-lock.json')
+  const lockfilePath = join(config.outDir, 'prompt-lock.json')
   writeLockfile(lockfilePath, lockfile)
 
   return { manifestPath, lockfilePath, promptsFound: prompts.length }
