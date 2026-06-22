@@ -5,3 +5,8 @@ dist/
 
 # Codegen output — regenerated on demand. (prompt-lock.json IS committed per ADR-0005.)
 examples/quickstart/prompts/.generated/*.ts
+
+# Internal planning docs — not for the public repo
+context/
+issues/
+KICKOFF.md
