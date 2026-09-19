@@ -1,6 +1,6 @@
 /**
- * Internal `pull()` utility — resolves a Pin against a Manifest and returns
- * a promptkit CompiledTemplate.
+ * Internal `pull()` utility: resolves a Pin against a Manifest and returns
+ * a CompiledTemplate.
  *
  * Not exported from the package. Consumed only by generated code in the barrel.
  * See ADR-0004.

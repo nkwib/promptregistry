@@ -14,7 +14,7 @@ title: 'promptregistry · API reference'
 
 The canonical reference for promptregistry's public surface: the **Manifest** schema, **Pin** grammar, the **Lockfile** (`prompt-lock.json`), each CLI subcommand, and the shape of generated modules.
 
-promptregistry inherits its core vocabulary from promptkit. Terms below — _**Placeholder**_, _**Variables object**_, _**Compiled template**_, _**Parser**_ — are not redefined here. See [promptkit's CONTEXT.md](https://github.com/nkwib/tprompt/blob/main/CONTEXT.md) for canonical definitions.
+promptregistry ships its own minimal template compiler (`src/promptkit.ts`), modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt)'s naming but not depending on it. Terms below (_**Placeholder**_, _**Variables object**_, _**Compiled template**_, _**Parser**_) are not redefined here. See [CONTEXT.md](https://github.com/nkwib/promptregistry/blob/main/CONTEXT.md) for definitions.
 
 ## Manifest
 
@@ -189,12 +189,12 @@ End users do not import runtime values from `promptregistry` directly; they impo
 
 ### `import type { ... } from '@nkwib/promptregistry'`
 
-Type-only exports. Re-exported from promptkit:
+Type-only exports. Re-exported from the built-in template compiler (`src/promptkit.ts`):
 
 | Name | Meaning |
 |------|--------|
 | `CompiledTemplate<Vars>` | The shape of a _Compiled template_. |
-| `PromptTag<Open, Close>` | The shape of a tagged-template factory parameterised by delimiter. |
+| `PromptTag<Open, Close>` | The internal factory shape, parameterised by delimiter, that produces a `CompiledTemplate` from a template string. |
 
 ### `@nkwib/promptregistry/runtime`
 

@@ -24,7 +24,7 @@ Three forces converged in the round-table grill:
 2. **The type-safety pitch.** The whole product is "a PM removes a variable and `tsc` catches it." If the canonical API is a string-keyed runtime call, the consumer experience is indistinguishable from an untyped registry. Named imports make the type contract visible at the import statement.
 3. **The launch story.** The README hero is a screenshot of a rewritten `tsc` error. That error must point at a call site the user recognises (`customerSummary.with({...})`), not at an internal `.d.ts` generated from a string key.
 
-`pull()` still exists because the barrel needs something to call at runtime to resolve a Pin against the Manifest and construct a promptkit `Compiled template`. But that runtime call is hidden inside generated code.
+`pull()` still exists because the barrel needs something to call at runtime to resolve a Pin against the Manifest and construct a `Compiled template`. But that runtime call is hidden inside generated code.
 
 ## Considered options
 

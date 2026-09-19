@@ -2,7 +2,7 @@
 
 An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity.
 
-The wedge is two things together: a typed `pull` (each prompt entry is emitted as a runtime `.ts` with a named `XxxVars` type alias, so a missing variable is a normal `tsc` error that names the prompt) and lockfile-gated **Placeholder** integrity (the manifest hash is committed in `prompt-lock.json`, and `promptregistry check` fails if the remote was edited without a version bump). Built on the [promptkit](https://tprompt.pages.dev/) tagged-template primitive — see [promptkit's CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for the canonical vocabulary (Placeholder, Variables object, Compiled template, Parser). **Non-goals:** no hosted UI, no eval running, no migration importers, no template logic — variables only.
+The wedge is two things together: a typed `pull` (each prompt entry is emitted as a runtime `.ts` with a named `XxxVars` type alias, so a missing variable is a normal `tsc` error that names the prompt) and lockfile-gated **Placeholder** integrity (the manifest hash is committed in `prompt-lock.json`, and `promptregistry check` fails if the remote was edited without a version bump). PromptRegistry ships its own minimal `{{placeholder}}` template compiler (`src/promptkit.ts`), with a `.with()`/`.partial()`/`.validate()` surface modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt): see [CONTEXT.md](./CONTEXT.md) for the vocabulary (Placeholder, Variables object, Compiled template, Parser). **Non-goals:** no hosted UI, no eval running, no migration importers, no template logic (variables only).
 
 A PM edits the remote manifest and removes a variable:
 
@@ -69,9 +69,9 @@ Wire into your build script:
 }
 ```
 
-## Relationship to promptkit
+## Relationship to tprompt
 
-PromptRegistry is built on the [promptkit](https://tprompt.pages.dev/) tagged-template primitive and reuses promptkit's vocabulary verbatim — see [promptkit's CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for the canonical definitions of **Placeholder**, **Variables object**, **Compiled template**, and **Parser**. PromptRegistry adds the operational layer on top: a Manifest as the source of truth, a typed `pull` via codegen, and a Lockfile-backed integrity gate. The package does not redefine those promptkit terms; if a section reads as if it does, file a bug.
+PromptRegistry does not depend on [@nkwib/tprompt](https://github.com/nkwib/tprompt). It ships its own minimal template compiler (`src/promptkit.ts`), whose `.with()`/`.partial()`/`.validate()` surface and vocabulary (**Placeholder**, **Variables object**, **Compiled template**, **Parser**, defined in [CONTEXT.md](./CONTEXT.md)) is modeled on tprompt's naming. The two are not drop-in compatible, and tprompt's own API is a plain compile call, not a tagged template. PromptRegistry adds the operational layer on top: a Manifest as the source of truth, a typed `pull` via codegen, and a Lockfile-backed integrity gate.
 
 ## API reference
 
