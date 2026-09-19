@@ -1,14 +1,11 @@
 /**
- * promptkit stub — to be replaced by the real `promptkit` / `tprompt` npm package.
+ * PromptRegistry's own minimal template compiler. Naming is modeled on
+ * `@nkwib/tprompt`'s public surface, but the two packages are independent
+ * (no dependency) and not drop-in compatible.
  *
- * Implements the minimal API surface that PromptRegistry depends on:
  * - `makePromptTag({ open, close })` factory
- * - Tagged-template function returning a CompiledTemplate
  * - `.with()`, `.partial()`, `.validate()`, `.validateSafe()` methods
  * - Type-level placeholder extraction from template literal types
- *
- * This stub is intentionally minimal. The real promptkit will have more
- * sophisticated type inference and runtime features.
  */
 
 // ---------------------------------------------------------------------------

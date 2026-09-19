@@ -1,6 +1,6 @@
 # PromptRegistry
 
-An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity. Built on the [promptkit](https://tprompt.pages.dev/) primitive.
+An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity. Ships its own minimal template compiler modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt)'s API; not a dependency.
 
 ## Language
 
@@ -31,18 +31,17 @@ _Avoid:_ generate, build, compile (suggest a heavier build pipeline than what ex
 - The **Lockfile** records the content hash of the Manifest at CodeGen time.
 - `promptregistry check` compares the **Lockfile** hash against the current remote Manifest hash. A mismatch means the Manifest was edited without a version bump.
 - `promptregistry check --tsc` intercepts `tsc --noEmit` diagnostics and rewrites those originating from generated `.d.ts` files into human-readable messages naming the offending **Pin**, the changed **Placeholder**, and the call-site line.
-- The **Registry** barrel re-exports each prompt as a named import typed by the **Compiled template** shape from promptkit. The consumer never calls `pull()` directly; the barrel is the public surface.
+- The **Registry** barrel re-exports each prompt as a named import typed by the **Compiled template** shape (`src/promptkit.ts`). The consumer never calls `pull()` directly; the barrel is the public surface.
 
-## PromptKit terms we use verbatim (do not redefine)
+## Template compiler vocabulary (src/promptkit.ts)
 
-- **Tagged template** — the `prompt`...`` invocation
-- **Placeholder** — the named slot inside a delimiter, e.g. `userName` in `{{userName}}`
-- **Variables object** — the object passed to `.with({...})` or `.partial({...})`
-- **Compiled template** — the value returned by the `prompt` tag
-- **Parser** — the pair (delimiter, placeholder regex) that extracts placeholders at runtime and compile time
-- **Delimiter** — the pair `(open, close)` that wraps a placeholder
+PromptRegistry's built-in template compiler uses naming modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt), but the two packages are independent: promptregistry does not depend on tprompt, and the compiler is driven by a plain string, not a tagged-template call.
 
-See [promptkit CONTEXT.md](./context/promptkit-foundation/CONTEXT.md) for canonical definitions.
+- **Placeholder**: the named slot inside a delimiter, e.g. `userName` in `{{userName}}`
+- **Variables object**: the object passed to `.with({...})` or `.partial({...})`
+- **Compiled template**: the value returned by compiling a template string
+- **Parser**: the pair (delimiter, placeholder regex) that extracts placeholders at runtime
+- **Delimiter**: the pair `(open, close)` that wraps a placeholder
 
 ## Example dialogue
 
