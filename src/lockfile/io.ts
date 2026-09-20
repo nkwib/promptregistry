@@ -14,12 +14,12 @@ export const lockfileEntrySchema = z.object({
   manifest_url: z.string(),
   content_hash: z.string(),
   pulled_at: z.string(),
-})
+}).strict()
 
 export const lockfileSchema = z.object({
   'lockfile-format-version': z.literal('1'),
   entries: z.array(lockfileEntrySchema),
-})
+}).strict()
 
 export type Lockfile = z.infer<typeof lockfileSchema>
 export type LockfileEntry = z.infer<typeof lockfileEntrySchema>

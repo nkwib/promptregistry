@@ -10,13 +10,25 @@
  *   2. `check` exits 0 and prints "All checks passed".
  *   3. After silently editing the manifest, `check` exits 1 and prints the
  *      `hash-drift` error code.
+ *   4. `check --tsc` exits 2 when tsc reports an error at a call site.
+ *   5. When both hash drift and a tsc error are present, `check --tsc` exits
+ *      1 (drift is checked, and the process exits, before tsc ever runs).
  *
  * Wall-time budget: 30s.
  */
 
 import { describe, it, expect, beforeAll } from 'vitest'
 import { spawnSync } from 'node:child_process'
-import { copyFileSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  copyFileSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -25,7 +37,8 @@ import { ALL_CHECKS_PASSED, HASH_DRIFT_CODE } from '../fixtures/expected-message
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 const repoRoot = resolve(__dirname, '..', '..')
-const cliPath = join(repoRoot, 'dist', 'cli', 'index.js')
+const distDir = join(repoRoot, 'dist')
+const cliPath = join(distDir, 'cli', 'index.js')
 const fixtureManifest = join(repoRoot, 'examples', 'quickstart', 'manifest.json')
 
 const haveBuild = existsSync(cliPath)
@@ -101,6 +114,95 @@ describe.skipIf(!haveBuild)('quickstart end-to-end (bundled CLI)', () => {
       expect(elapsed).toBeLessThan(30_000)
     } finally {
       rmSync(tmpRoot, { recursive: true, force: true })
+    }
+  }, 30_000)
+
+  // `--tsc` spawns `npx tsc`, which resolves a locally installed `typescript`
+  // by walking up from cwd. Nesting the temp project under repoRoot (instead
+  // of os.tmpdir()) lets it find this repo's own devDependency instead of
+  // hitting the network. The generated files import `@nkwib/promptregistry`
+  // by package name, so a minimal copy of the built dist is linked in too.
+  function linkBuiltPackage(root: string) {
+    const pkgDir = join(root, 'node_modules', '@nkwib', 'promptregistry')
+    mkdirSync(pkgDir, { recursive: true })
+    for (const file of ['index.js', 'index.d.ts', 'runtime.js', 'runtime.d.ts']) {
+      copyFileSync(join(distDir, file), join(pkgDir, file))
+    }
+    const promptkitDts = readdirSync(distDir).find(
+      (f) => f.startsWith('promptkit-') && f.endsWith('.d.ts'),
+    )
+    if (promptkitDts) copyFileSync(join(distDir, promptkitDts), join(pkgDir, promptkitDts))
+    writeFileSync(
+      join(pkgDir, 'package.json'),
+      JSON.stringify({
+        name: '@nkwib/promptregistry',
+        version: '0.0.0-test',
+        type: 'module',
+        exports: {
+          '.': { types: './index.d.ts', import: './index.js' },
+          './runtime': { types: './runtime.d.ts', import: './runtime.js' },
+        },
+      }),
+    )
+    writeFileSync(
+      join(root, 'tsconfig.json'),
+      JSON.stringify({
+        compilerOptions: {
+          strict: true,
+          noEmit: true,
+          module: 'esnext',
+          target: 'es2022',
+          moduleResolution: 'bundler',
+        },
+        include: ['**/*.ts'],
+      }),
+    )
+  }
+
+  it('check --tsc: exit 2 on a tsc error, exit 1 when drift is also present', () => {
+    const start = Date.now()
+    const root = mkdtempSync(join(repoRoot, '.tsc-check-'))
+    const manifestPath = join(root, 'manifest.json')
+
+    function spawnHere(args: string[]) {
+      return spawnSync('node', [cliPath, ...args], { cwd: root, encoding: 'utf-8', env: process.env })
+    }
+
+    try {
+      copyFileSync(fixtureManifest, manifestPath)
+
+      const codegen = spawnHere(['codegen', '--manifest', './manifest.json', '--out', './prompts/.generated'])
+      expect(codegen.status, codegen.stderr).toBe(0)
+
+      linkBuiltPackage(root)
+      mkdirSync(join(root, 'src'), { recursive: true })
+      writeFileSync(
+        join(root, 'src', 'main.ts'),
+        [
+          "import { customerSummary } from '../prompts/.generated/registry.js'",
+          "const wrongType: number = customerSummary.with({ customerName: 'Ada', planTier: 'Pro', joinDate: '2024-01-15' })",
+        ].join('\n') + '\n',
+      )
+
+      const tscOnly = spawnHere([
+        'check', '--tsc', '--manifest', './manifest.json', '--src', './src', '--out', './prompts/.generated',
+      ])
+      expect(tscOnly.status, `${tscOnly.stdout}\n${tscOnly.stderr}`).toBe(2)
+
+      const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+      manifest.prompts[0].template = `${manifest.prompts[0].template} extra`
+      writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n')
+
+      const both = spawnHere([
+        'check', '--tsc', '--manifest', './manifest.json', '--src', './src', '--out', './prompts/.generated',
+      ])
+      expect(both.status, `${both.stdout}\n${both.stderr}`).toBe(1)
+      expect(`${both.stdout}\n${both.stderr}`).toContain(HASH_DRIFT_CODE)
+
+      const elapsed = Date.now() - start
+      expect(elapsed).toBeLessThan(30_000)
+    } finally {
+      rmSync(root, { recursive: true, force: true })
     }
   }, 30_000)
 })
