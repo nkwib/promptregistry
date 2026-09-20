@@ -121,6 +121,38 @@ describe('lockfile I/O', () => {
     expect(() => readLockfile(path)).toThrow()
   })
 
+  it('rejects a lockfile with an unknown top-level key', () => {
+    mkdirSync(tmpDir, { recursive: true })
+    const path = join(tmpDir, 'unknown-toplevel-lock.json')
+    writeFileSync(
+      path,
+      JSON.stringify({ 'lockfile-format-version': '1', entries: [], migratedAt: '2026-09-20' }),
+    )
+    expect(() => readLockfile(path)).toThrow()
+  })
+
+  it('rejects a lockfile entry with an unknown key', () => {
+    mkdirSync(tmpDir, { recursive: true })
+    const path = join(tmpDir, 'unknown-entry-key-lock.json')
+    writeFileSync(
+      path,
+      JSON.stringify({
+        'lockfile-format-version': '1',
+        entries: [
+          {
+            name: 'greeting',
+            version: 'v1',
+            manifest_url: 'https://example.com/manifest.json',
+            content_hash: 'abc123',
+            pulled_at: '2024-01-01T00:00:00.000Z',
+            notes: 'should not be here',
+          },
+        ],
+      }),
+    )
+    expect(() => readLockfile(path)).toThrow()
+  })
+
   it('readLockfileIfExists returns null for missing file', () => {
     expect(readLockfileIfExists(join(tmpDir, 'does-not-exist.json'))).toBeNull()
   })

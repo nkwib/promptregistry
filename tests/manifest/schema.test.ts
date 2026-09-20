@@ -96,6 +96,43 @@ describe('validateManifest', () => {
     }
   })
 
+  it('rejects unknown keys on a prompt entry', () => {
+    const manifest = {
+      'manifest-format-version': '1',
+      prompts: [
+        { name: 'greeting', version: 'v1', template: 'Hello', descripton: 'typo' },
+      ],
+    }
+    expect(() => validateManifest(manifest)).toThrow(ManifestValidationError)
+    try {
+      validateManifest(manifest)
+    } catch (error) {
+      expect((error as ManifestValidationError).code).toBe('invalid-schema')
+      expect((error as Error).message).toContain('descripton')
+    }
+  })
+
+  it('rejects unknown keys on a delimiter', () => {
+    const manifest = {
+      'manifest-format-version': '1',
+      prompts: [
+        {
+          name: 'greeting',
+          version: 'v1',
+          template: 'Hello',
+          delimiter: { open: '{{', close: '}}', escape: '\\' },
+        },
+      ],
+    }
+    expect(() => validateManifest(manifest)).toThrow(ManifestValidationError)
+    try {
+      validateManifest(manifest)
+    } catch (error) {
+      expect((error as ManifestValidationError).code).toBe('invalid-schema')
+      expect((error as Error).message).toContain('escape')
+    }
+  })
+
   it('rejects invalid manifest-format-version', () => {
     const manifest = {
       'manifest-format-version': '2',

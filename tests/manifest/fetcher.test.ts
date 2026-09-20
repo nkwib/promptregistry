@@ -126,6 +126,50 @@ describe('fetchManifest', () => {
       fetchMock.mockResolvedValueOnce(new Response('boom', { status: 500 }))
       await expect(fetchManifest('https://example.com/manifest.json')).rejects.toThrow(/Unexpected status 500/)
     })
+
+    describe('hostname spoofing (raw.githubusercontent.com trust)', () => {
+      const body = JSON.stringify({
+        'manifest-format-version': '1',
+        prompts: [{ name: 'g', version: 'v1', template: 'x' }],
+      })
+
+      it.each([
+        'https://evil.example/raw.githubusercontent.com/x/manifest.json',
+        'https://raw.githubusercontent.com.evil.example/x/manifest.json',
+      ])('treats %s as an untrusted public URL, not the trusted GitHub raw host', async (url) => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(body))
+
+        await fetchManifest(url)
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          url,
+          expect.objectContaining({ redirect: 'manual' }),
+        )
+      })
+
+      it('follows redirects for a real GitHub release asset URL', async () => {
+        fetchMock.mockResolvedValueOnce(jsonResponse(body))
+
+        await fetchManifest('https://github.com/nkwib/promptregistry/releases/download/v1/manifest.json')
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          'https://github.com/nkwib/promptregistry/releases/download/v1/manifest.json',
+          expect.objectContaining({ redirect: 'follow' }),
+        )
+      })
+
+      it('does not follow redirects for a URL spoofing a GitHub release asset via path, not host', async () => {
+        const url = 'https://evil.example/github.com/releases/download/v1/manifest.json'
+        fetchMock.mockResolvedValueOnce(jsonResponse(body))
+
+        await fetchManifest(url)
+
+        expect(fetchMock).toHaveBeenCalledWith(
+          url,
+          expect.objectContaining({ redirect: 'manual' }),
+        )
+      })
+    })
   })
 
   // Cleanup

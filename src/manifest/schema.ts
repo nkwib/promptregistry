@@ -10,14 +10,14 @@ import { z } from 'zod'
 export const delimiterSchema = z.object({
   open: z.string().min(1),
   close: z.string().min(1),
-})
+}).strict()
 
 export const promptEntrySchema = z.object({
   name: z.string().min(1).regex(/^[A-Za-z0-9-_]+$/),
   version: z.string().min(1),
   template: z.string(),
   delimiter: delimiterSchema.default({ open: '{{', close: '}}' }),
-})
+}).strict()
 
 export const manifestSchema = z.object({
   'manifest-format-version': z.literal('1'),
