@@ -5,7 +5,7 @@ import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { codegen } from '../src/codegen'
 import type { Manifest } from '../src/manifest/schema'
-import type { CompiledTemplate } from '../src/promptkit'
+import type { CompiledTemplate } from '../src/runtime'
 
 describe('codegen runtime end-to-end', () => {
   let outDir: string
