@@ -6,8 +6,8 @@
  * See ADR-0004.
  */
 
-import { makePromptTag } from './promptkit.js'
-import type { CompiledTemplate } from './promptkit.js'
+import { compile } from './runtime.js'
+import type { CompiledTemplate } from './runtime.js'
 import type { Manifest, PromptEntry } from './manifest/schema.js'
 import { parsePin } from './pin.js'
 
@@ -37,7 +37,5 @@ export function pull(pin: string, manifest: Manifest): CompiledTemplate {
 }
 
 function entryToCompiledTemplate(entry: PromptEntry): CompiledTemplate {
-  const tag = makePromptTag({ open: entry.delimiter.open, close: entry.delimiter.close })
-  const strings = Object.assign([entry.template], { raw: [entry.template] }) as TemplateStringsArray
-  return tag(strings)
+  return compile(entry.template, entry.delimiter)
 }

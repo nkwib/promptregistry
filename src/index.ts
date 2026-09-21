@@ -5,7 +5,7 @@
  * `promptregistry/runtime`. CLI lives at `bin/promptregistry`.
  */
 
-export type { CompiledTemplate, PromptTag } from './promptkit.js'
+export type { CompiledTemplate, PromptTag } from './runtime.js'
 
 // Manifest / Pin types — useful for tooling that wants to read a manifest or
 // a `prompt-lock.json` file without re-deriving the shapes.

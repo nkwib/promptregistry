@@ -2,7 +2,7 @@
 
 This document is the canonical reference for PromptRegistry's public surface: the **Manifest** schema, **Pin** grammar, the **Lockfile** (`prompt-lock.json`), each CLI subcommand, and the shape of generated modules.
 
-PromptRegistry ships its own minimal template compiler (`src/promptkit.ts`), modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt)'s naming but not depending on it. Terms in **bold-italic** below (_**Placeholder**_, _**Variables object**_, _**Compiled template**_, _**Parser**_) are not re-defined here. See [`../CONTEXT.md`](../CONTEXT.md) for definitions.
+PromptRegistry's runtime engine (`src/runtime.ts`) is built on [@nkwib/tprompt](https://github.com/nkwib/tprompt) for placeholder extraction and rendering. Terms in **bold-italic** below (_**Placeholder**_, _**Variables object**_, _**Compiled template**_, _**Parser**_) are not re-defined here. See [`../CONTEXT.md`](../CONTEXT.md) for definitions.
 
 ---
 
@@ -225,12 +225,12 @@ The `promptregistry` package's public surface is intentionally minimal. End user
 
 ### `import type { ... } from '@nkwib/promptregistry'`
 
-Type-only exports. Re-exported from the built-in template compiler (`src/promptkit.ts`):
+Type-only exports. Re-exported from the runtime engine (`src/runtime.ts`):
 
 | Name | Meaning |
 |------|--------|
 | `CompiledTemplate<Vars>` | The shape of a _**Compiled template**_. |
-| `PromptTag<Open, Close>` | The internal factory shape, parameterised by delimiter, that produces a `CompiledTemplate` from a template string. |
+| `PromptTag` | The internal factory shape that produces a `CompiledTemplate` from a template string. |
 
 ### `@nkwib/promptregistry/runtime`
 

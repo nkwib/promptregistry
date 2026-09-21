@@ -2,7 +2,7 @@
 
 An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity.
 
-The wedge is two things together: a typed `pull` (each prompt entry is emitted as a runtime `.ts` with a named `XxxVars` type alias, so a missing variable is a normal `tsc` error that names the prompt) and lockfile-gated **Placeholder** integrity (the manifest hash is committed in `prompt-lock.json`, and `promptregistry check` fails if the remote was edited without a version bump). PromptRegistry ships its own minimal `{{placeholder}}` template compiler (`src/promptkit.ts`), with a `.with()`/`.partial()`/`.validate()` surface modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt): see [CONTEXT.md](./CONTEXT.md) for the vocabulary (Placeholder, Variables object, Compiled template, Parser). **Non-goals:** no hosted UI, no eval running, no migration importers, no template logic (variables only).
+The wedge is two things together: a typed `pull` (each prompt entry is emitted as a runtime `.ts` with a named `XxxVars` type alias, so a missing variable is a normal `tsc` error that names the prompt) and lockfile-gated **Placeholder** integrity (the manifest hash is committed in `prompt-lock.json`, and `promptregistry check` fails if the remote was edited without a version bump). The `{{placeholder}}` runtime engine (`src/runtime.ts`) is built on [@nkwib/tprompt](https://github.com/nkwib/tprompt), with a `.with()`/`.partial()`/`.validate()` surface: see [CONTEXT.md](./CONTEXT.md) for the vocabulary (Placeholder, Variables object, Compiled template, Parser). **Non-goals:** no hosted UI, no eval running, no migration importers, no template logic (variables only).
 
 A PM edits the remote manifest and removes a variable:
 
@@ -71,7 +71,7 @@ Wire into your build script:
 
 ## Relationship to tprompt
 
-PromptRegistry does not depend on [@nkwib/tprompt](https://github.com/nkwib/tprompt). It ships its own minimal template compiler (`src/promptkit.ts`), whose `.with()`/`.partial()`/`.validate()` surface and vocabulary (**Placeholder**, **Variables object**, **Compiled template**, **Parser**, defined in [CONTEXT.md](./CONTEXT.md)) is modeled on tprompt's naming. The two are not drop-in compatible, and tprompt's own API is a plain compile call, not a tagged template. PromptRegistry adds the operational layer on top: a Manifest as the source of truth, a typed `pull` via codegen, and a Lockfile-backed integrity gate.
+PromptRegistry depends on [@nkwib/tprompt](https://github.com/nkwib/tprompt) for placeholder extraction and rendering (`src/runtime.ts` calls tprompt's `makePromptTag`). PromptRegistry wraps the result in its own `CompiledTemplate<Vars>` type, typed by an explicit generic rather than tprompt's own literal-type inference, because codegen emits a named `XxxVars` type per prompt and `check --tsc` needs that name to show up verbatim in tsc's diagnostics; tprompt's own `Compiled` type infers an anonymous object type instead. `.partial()` stays chainable across multiple calls (tprompt's own `PartialApplied` only supports one level), which the wrapper implements by re-parsing the partially-substituted template through tprompt again. PromptRegistry adds the operational layer on top: a Manifest as the source of truth, a typed `pull` via codegen, and a Lockfile-backed integrity gate.
 
 ## API reference
 

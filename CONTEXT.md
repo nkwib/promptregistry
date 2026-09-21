@@ -1,6 +1,6 @@
 # PromptRegistry
 
-An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity. Ships its own minimal template compiler modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt)'s API; not a dependency.
+An OSS TypeScript SDK + CLI that turns a static prompt manifest into typed, greppable named imports with lockfile-gated integrity. The runtime engine (`src/runtime.ts`) is built on [@nkwib/tprompt](https://github.com/nkwib/tprompt) for placeholder extraction and rendering; promptregistry keeps its own `CompiledTemplate<Vars>` type on top so codegen can keep emitting a named `XxxVars` type per prompt.
 
 ## Language
 
@@ -31,11 +31,11 @@ _Avoid:_ generate, build, compile (suggest a heavier build pipeline than what ex
 - The **Lockfile** records the content hash of the Manifest at CodeGen time.
 - `promptregistry check` compares the **Lockfile** hash against the current remote Manifest hash. A mismatch means the Manifest was edited without a version bump.
 - `promptregistry check --tsc` intercepts `tsc --noEmit` diagnostics and rewrites those originating from generated `.d.ts` files into human-readable messages naming the offending **Pin**, the changed **Placeholder**, and the call-site line.
-- The **Registry** barrel re-exports each prompt as a named import typed by the **Compiled template** shape (`src/promptkit.ts`). The consumer never calls `pull()` directly; the barrel is the public surface.
+- The **Registry** barrel re-exports each prompt as a named import typed by the **Compiled template** shape (`src/runtime.ts`). The consumer never calls `pull()` directly; the barrel is the public surface.
 
-## Template compiler vocabulary (src/promptkit.ts)
+## Template compiler vocabulary (src/runtime.ts)
 
-PromptRegistry's built-in template compiler uses naming modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt), but the two packages are independent: promptregistry does not depend on tprompt, and the compiler is driven by a plain string, not a tagged-template call.
+PromptRegistry's runtime engine is `@nkwib/tprompt`: `src/runtime.ts` calls tprompt's `makePromptTag` to extract placeholders and render templates, then wraps the result in promptregistry's own `CompiledTemplate<Vars>` type. The wrapper exists because tprompt's own `Compiled` type infers an anonymous object type from the template literal, while `check --tsc` needs the named `XxxVars` type codegen emits to appear verbatim in tsc's diagnostics.
 
 - **Placeholder**: the named slot inside a delimiter, e.g. `userName` in `{{userName}}`
 - **Variables object**: the object passed to `.with({...})` or `.partial({...})`

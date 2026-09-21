@@ -12,7 +12,7 @@ title: 'promptregistry · Guide'
 
 # Guide
 
-`promptregistry` turns a static JSON manifest into typed, greppable named imports with a committed lockfile. The package is a TypeScript SDK + a small CLI, with its own minimal template compiler modeled on [@nkwib/tprompt](https://github.com/nkwib/tprompt)'s API (not a dependency).
+`promptregistry` turns a static JSON manifest into typed, greppable named imports with a committed lockfile. The package is a TypeScript SDK + a small CLI, with a `{'{{placeholder}}'}` runtime engine built on [@nkwib/tprompt](https://github.com/nkwib/tprompt).
 
 It is **variables only, no template logic** — no `{'{{#if}}'}`, no loops, no DSL. If you need conditionals or iteration, build them in TypeScript and compose strings.
 

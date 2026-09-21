@@ -24,7 +24,6 @@ import {
   existsSync,
   mkdirSync,
   mkdtempSync,
-  readdirSync,
   readFileSync,
   rmSync,
   writeFileSync,
@@ -128,10 +127,6 @@ describe.skipIf(!haveBuild)('quickstart end-to-end (bundled CLI)', () => {
     for (const file of ['index.js', 'index.d.ts', 'runtime.js', 'runtime.d.ts']) {
       copyFileSync(join(distDir, file), join(pkgDir, file))
     }
-    const promptkitDts = readdirSync(distDir).find(
-      (f) => f.startsWith('promptkit-') && f.endsWith('.d.ts'),
-    )
-    if (promptkitDts) copyFileSync(join(distDir, promptkitDts), join(pkgDir, promptkitDts))
     writeFileSync(
       join(pkgDir, 'package.json'),
       JSON.stringify({
