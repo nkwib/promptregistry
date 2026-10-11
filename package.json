@@ -42,7 +42,7 @@
   "dependencies": {
     "@nkwib/tprompt": "^0.2.0",
     "cac": "^6.7.14",
-    "zod": "^3.25.76"
+    "zod": "^4.6.5"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
